@@ -1,7 +1,12 @@
 #
-# Use policy iteration and value iteration (and a few variants thereon) to solve
-# MDPs with state and action spaces that are finite and sufficiently small to be
-# explicitly represented in memory.
+# Find optimal values and policies using policy iteration and/or value
+# iteration.
+#
+# These currently just iterate the Bellman equations; linear programming for
+# policy evaluation is not yet supported.
+#
+# The solver converts the given model into a reasonably efficient internal
+# representation before solving.
 #
 class FiniteMDP::Solver
   def initialize model, discount, policy, value=Hash.new(0)
@@ -37,25 +42,30 @@ class FiniteMDP::Solver
                           map {|a_to_n, state| a_to_n[policy[state]]}
   end
 
-  attr_accessor :model
+  #
+  # @return [Model] the model being solved; read only; do not change the model
+  # while it is being solved
+  #
+  attr_reader :model
 
   # 
-  # State values
+  # Current value estimate for each state.
   #
-  # NB: this is read only
+  # The result is converted from the solver's internal representation, so you
+  # cannot affect the solver by changing the result. 
   #
-  # @return [Hash<state, Float>] from states to values
+  # @return [Hash<state, Float>] from states to values; read only; any changes
+  # made to the returned object will not affect the solver
   #
   def value
     Hash[*model.states.zip(@compacted_value).flatten(1)]
   end
 
   #
-  # Policy
+  # Current estimate of the optimal action for each state.
   #
-  # NB: this is read only
-  #
-  # @return [Hash<state, action>]
+  # @return [Hash<state, action>] from states to actions; read only; any changes
+  # made to the returned object will not affect the solver
   #
   def policy
     Hash[*model.states.zip(@compacted_policy).map{|state, action_n|
@@ -148,97 +158,4 @@ class FiniteMDP::Solver
     }.inject(:+)
   end
 end
-
-#class FiniteMDP::Solver
-#  def initialize transitions, reward, discount, policy,
-#    value=Hash.new {|v,s| v[s] = reward[s]}
-#    
-#    @transitions = transitions
-#    @reward      = reward
-#    @discount    = discount
-#    @value       = value
-#    @policy      = policy
-#  end
-#
-#  attr_accessor :value, :policy
-#
-#  #
-#  # Refine our estimate of the value function for the current policy; this can
-#  # be used to implement variants of policy iteration.
-#  #
-#  # This is the 'policy evaluation' step in Figure 4.3 of Sutton and Barto
-#  # (1998).
-#  #
-#  # @return [Float] largest absolute change (over all states) in the value
-#  # function
-#  #
-#  def evaluate_policy
-#    delta = 0.0
-#    for state, actions in @transitions
-#      new_value = @reward[state]
-#      for succ, succ_pr in actions[@policy[state]]
-#        new_value += @discount*succ_pr*@value[succ]
-#      end
-#      delta = [delta, (@value[state] - new_value).abs].max
-#      @value[state] = new_value
-#    end
-#    delta
-#  end
-#
-#  #
-#  # Make our policy greedy with respect to our current value function; this can
-#  # be used to implement variants of policy iteration.
-#  #
-#  # This is the 'policy improvement' step in Figure 4.3 of Sutton and Barto
-#  # (1998).
-#  # 
-#  # @return [Boolean] false iff the policy changed for any state
-#  #
-#  def improve_policy
-#    stable = true
-#    for state, actions in @transitions
-#      a_max = nil
-#      v_max = -Float::MAX
-#      for action in actions.keys
-#        v = succs.map{|succ, pr| @discount*pr*@value[succ]}.inject(:+)
-#        if v > v_max
-#          a_max = action
-#          v_max = v
-#        end
-#      end
-#      raise "no feasible actions in state #{state}" unless a_max
-#      stable = false if @policy[state] != a_max
-#      @policy[state] = a_max
-#    end
-#    stable
-#  end
-#
-#  #
-#  # Do one iteration of value iteration.
-#  #
-#  # This is the algorithm from Figure 4.5 of Sutton and Barto (1998). It is
-#  # mostly equivalent to calling evaluate_policy and then improve_policy, but it
-#  # does fewer backups.
-#  #
-#  # @return [Float] largest absolute change (over all states) in the value
-#  # function
-#  #
-#  def value_iteration
-#    delta = 0.0
-#    for state, actions in @transitions
-#      for action, succs in actions
-#        v = succs.map{|succ, pr| @discount*pr*@value[succ]}.inject(:+)
-#        if v > v_max
-#          a_max = action
-#          v_max = v
-#        end
-#      end
-#      v_max += @reward[state]
-#      delta = [delta, (@value[state] - v_max).abs].max
-#      @value[state]  = v_max
-#      @policy[state] = a_max
-#    end
-#    delta
-#  end
-#end
 

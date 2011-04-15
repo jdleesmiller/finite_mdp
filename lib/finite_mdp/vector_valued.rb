@@ -1,13 +1,11 @@
+#
+# Define an object's hash code and equality (in the sense of <tt>eql?</tt>)
+# according to its array representation (<tt>to_a</tt>). See notes for {Model}
+# for why this might be useful.
+#
+# A class that includes this module must define <tt>to_a</tt>.
+#
 module FiniteMDP::VectorValued
-  include Comparable
-
-  #
-  # Redefine comparison so we can sort states lexically.
-  #
-  def <=> state
-    self.to_a <=> state.to_a
-  end
-
   #
   # Redefine hashing so we can use states as hash keys.
   #
