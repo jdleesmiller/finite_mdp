@@ -16,7 +16,7 @@ Gem::Specification.new do |s|
 
   s.rubyforge_project = 'finite_mdp'
 
-  #s.add_runtime_dependency '...'
+  s.add_runtime_dependency 'narray', '>= 0.5.9', '~> 0'
   s.add_development_dependency 'gemma', '>= 1.0.1', '~> 1.0'
 
   s.files       = Dir.glob('{lib,bin}/**/*.rb') + %w(README.rdoc)

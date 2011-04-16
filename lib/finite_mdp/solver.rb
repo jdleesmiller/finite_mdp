@@ -1,9 +1,13 @@
+require 'narray'
+
 #
 # Find optimal values and policies using policy iteration and/or value
 # iteration.
 #
-# These currently just iterate the Bellman equations; linear programming for
-# policy evaluation is not yet supported.
+# These currently just iterate the Bellman equations; solving the linear system
+# for policy evaluation is not yet supported.
+#
+# Only deterministic policies are supported.
 #
 # The solver converts the given model into a reasonably efficient internal
 # representation before solving.
@@ -28,23 +32,15 @@ class FiniteMDP::Solver
     # the hashing); the 'next states' map is still stored in sparse format
     # (that is, as a hash)
     model_states = model.states
-    @state_to_num = Hash[model_states.zip(0...model_states.size)]
+    state_to_num = Hash[model_states.zip(0...model_states.size)]
     @compacted_model = model_states.map {|state|
       model.actions(state).map {|action|
         Hash[model.next_states(state, action).map {|next_state|
           pr = model.transition_probability(state, action, next_state)
-          [@state_to_num[next_state], [pr, 
+          [state_to_num[next_state], [pr, 
             model.reward(state, action, next_state)]] if pr > 0
         }.compact]
       }
-    }
-
-    # also must convert the initial policy and initial value into compact form;
-    # to do this, we build a map from actions to action numbers; actions are
-    # numbered per state, so we get one map per state
-    @action_to_num = model_states.map{|state|
-      actions = model.actions(state)
-      Hash[actions.zip(0...actions.size)]
     }
 
     @discount = discount
@@ -53,7 +49,14 @@ class FiniteMDP::Solver
       # default to the first action, arbitrarily
       @compacted_policy = [0]*model_states.size
     else
-      @compacted_policy = @action_to_num.zip(model_states).
+      # also must convert the initial policy and initial value into compact
+      # form; to do this, we build a map from actions to action numbers; actions
+      # are numbered per state, so we get one map per state
+      action_to_num = model_states.map{|state|
+        actions = model.actions(state)
+        Hash[actions.zip(0...actions.size)]
+      }
+      @compacted_policy = action_to_num.zip(model_states).
                             map {|a_to_n, state| a_to_n[policy[state]]}
     end
 
@@ -61,6 +64,8 @@ class FiniteMDP::Solver
       @compacted_value.any? {|v| v.nil?}
     raise 'some initial policy actions are missing' if
       @compacted_policy.any? {|a| a.nil?}
+
+    @policy_A = nil
   end
 
   #
@@ -112,6 +117,51 @@ class FiniteMDP::Solver
       @compacted_value[state_n] = new_value
     end
     delta
+  end
+
+  def evaluate_policy_exact
+    if @policy_A
+      # update only those rows that have changed
+      @policy_A_action.zip(@compacted_policy).
+        each_with_index do |(old_action_n, new_action_n), state_n|
+        next if old_action_n == new_action_n
+        puts "updating #{state_n}"
+        update_policy_Ab state_n, new_action_n
+      end
+    else
+      # initialise the A and the b for Ax = b
+      @policy_A = NMatrix.float(num_states, num_states)
+      @policy_A_action = [-1]*num_states
+      @policy_b = NVector.float(num_states)
+
+      @compacted_policy.each_with_index do |action_n, state_n|
+        update_policy_Ab state_n, action_n
+      end
+    end
+
+    value = @policy_b / @policy_A # solve linear system
+    @compacted_value = value.to_a
+    nil
+  end
+
+  def num_states
+    @compacted_model.size
+  end
+
+  def update_policy_Ab state_n, action_n
+    # clear out the old values for state_n's row
+    @policy_A[true, state_n] = 0.0
+
+    # set new values according to state_n's successors under the current policy
+    b_n = 0
+    next_state_ns = @compacted_model[state_n][action_n]
+    next_state_ns.each do |next_state_n, (probability, reward)|
+      @policy_A[next_state_n, state_n] = -@discount*probability
+      b_n += probability*reward
+    end
+    @policy_A[state_n, state_n] += 1
+    @policy_A_action[state_n] = action_n
+    @policy_b[state_n] = b_n
   end
 
   #
@@ -179,4 +229,70 @@ class FiniteMDP::Solver
     }.inject(:+)
   end
 end
+
+#class FiniteMDP::DenseSolver
+#  #
+#  # @param [Model] model
+#  #
+#  # @param [Float] discount in (0, 1]
+#  #
+#  # @param [Hash<state, action>] policy initial policy; if empty, an arbitrary
+#  #        action is selected for each state
+#  #
+#  # @param [Hash<state, Float>] value initial value for each state; defaults to
+#  #        zero for every state
+#  #
+#  def initialize model, discount, policy={}, value=Hash.new(0)
+#    @model = model
+#
+#    # build the 
+#    model_states = model.states
+#    n = model_states.size
+#    state_to_num = Hash[model_states.zip(0...n)]
+#    @compacted_model = model_states.map {|state|
+#      model.actions(state).map {|action|
+#        row = NVector.float(n)
+#        model.next_states(state, action).each do |next_state|
+#          row[state_to_num[next_state]] =
+#            model.transition_probability(state, action, next_state) *
+#            model.reward(state, action, next_state)
+#        end
+#        row *= discount
+#      }
+#    }
+#
+#    @discount = discount
+#    @compacted_value    = model_states.map {|state| value[state]}
+#    if policy.empty?
+#      # default to the first action, arbitrarily
+#      @compacted_policy = [0]*n
+#    else
+#      # actions are numbered per-state
+#      action_to_num = model_states.map{|state|
+#        actions = model.actions(state)
+#        Hash[actions.zip(0...actions.size)]
+#      }
+#      @compacted_policy = action_to_num.zip(model_states).
+#        map {|a_to_n, state| a_to_n[policy[state]]}
+#    end
+#
+#    raise 'some initial values are missing' if
+#      @compacted_value.any? {|v| v.nil?}
+#    raise 'some initial policy actions are missing' if
+#      @compacted_policy.any? {|a| a.nil?}
+#  end
+#
+#  #
+#  # Obtain exact values for the current policy.
+#  #
+#  # The Bellman equations are a linear system when the policy is held fixed;
+#  # this method solves the system. 
+#  # 
+#  def evaluate_policy
+#    a = NMatrix.float(n,n)
+#    z = NVector.float(n)
+#    v = 
+#
+#  end
+#end
 

@@ -191,6 +191,20 @@ class TestFiniteMDP < Test::Unit::TestCase
     # once they're gone, they don't come back
     sparse_hash_model = HashModel.from_model(sparse_table_model, false)
     check_recycling_robot_model sparse_hash_model, true
+
+#    solver = Solver.new(table_model, 0.95)
+#    20.times do 
+#      solver.evaluate_policy_exact
+#      p solver.policy
+#      p solver.value
+#      solver.improve_policy
+#    end
+#    #assert solver.one_value_iteration < 1e-6 # should have converged
+#    
+#    solver = Solver.new(table_model, 0.95)
+#    1000.times do solver.one_value_iteration end
+#    p solver.policy
+#    p solver.value
   end
 
   def test_aima_grid_1
@@ -233,8 +247,22 @@ class TestFiniteMDP < Test::Unit::TestCase
             [0.705, 0.655, 0.611, 0.388]].flatten.
             zip(model.hash_to_grid(solver.value).flatten).
             all? {|x,y| (x.nil? && y.nil?) || (x-y).abs < 5e-4}
+
+    puts model.pretty_policy(solver.policy)
+    puts model.pretty_value(solver.value)
+
+    # solve with policy iteration
+    solver = Solver.new(model, 0.9999)
+    40.times do
+      solver.evaluate_policy_exact
+      solver.improve_policy
+    end
+    puts model.pretty_policy(solver.policy)
+    puts model.pretty_value(solver.value)
+    #assert solver.one_value_iteration < 1e-6 # should have converged
   end
 
+=begin
   def test_aima_grid_2
     # the grid from Figures 17.2
     r = -1.7
@@ -294,5 +322,6 @@ class TestFiniteMDP < Test::Unit::TestCase
                   "^   <  ", 
                   "^ < < v"], model.pretty_policy(solver.policy)
   end
+=end
 end
 
