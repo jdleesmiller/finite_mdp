@@ -232,7 +232,7 @@ class TestFiniteMDP < Test::Unit::TestCase
             [0.762,   nil, 0.660,    -1],
             [0.705, 0.655, 0.611, 0.388]].flatten.
             zip(model.hash_to_grid(solver.value).flatten).
-            all? {|x,y| (x.nil? && y.nil?) || (x-y).abs < 5e-3}
+            all? {|x,y| (x.nil? && y.nil?) || (x-y).abs < 5e-4}
   end
 
   def test_aima_grid_2
