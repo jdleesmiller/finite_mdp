@@ -9,7 +9,18 @@
 # representation before solving.
 #
 class FiniteMDP::Solver
-  def initialize model, discount, policy, value=Hash.new(0)
+  #
+  # @param [Model] model
+  #
+  # @param [Float] discount in (0, 1]
+  #
+  # @param [Hash<state, action>] policy initial policy; if empty, an arbitrary
+  #        action is selected for each state
+  #
+  # @param [Hash<state, Float>] value initial value for each state; defaults to
+  #        zero for every state
+  #
+  def initialize model, discount, policy={}, value=Hash.new(0)
     @model = model
 
     # get the model data into a more compact form for calculation; this means
@@ -17,14 +28,14 @@ class FiniteMDP::Solver
     # the hashing); the 'next states' map is still stored in sparse format
     # (that is, as a hash)
     model_states = model.states
-    @state_to_num = Hash[*model_states.enum_with_index.to_a.flatten(1)]
+    @state_to_num = Hash[model_states.zip(0...model_states.size)]
     @compacted_model = model_states.map {|state|
       model.actions(state).map {|action|
-        Hash[*model.next_states(state, action).map {|next_state|
-          [@state_to_num[next_state], [
-            model.transition_probability(state, action, next_state),
-            model.reward(state, action, next_state)]]
-        }.flatten(1)]
+        Hash[model.next_states(state, action).map {|next_state|
+          pr = model.transition_probability(state, action, next_state)
+          [@state_to_num[next_state], [pr, 
+            model.reward(state, action, next_state)]] if pr > 0
+        }.compact]
       }
     }
 
@@ -33,13 +44,23 @@ class FiniteMDP::Solver
     # numbered per state, so we get one map per state
     @action_to_num = model_states.map{|state|
       actions = model.actions(state)
-      Hash[*actions.enum_with_index.to_a.flatten(1)]
+      Hash[actions.zip(0...actions.size)]
     }
 
     @discount = discount
-    @compacted_value  = model_states.map {|state| value[state]}
-    @compacted_policy = @action_to_num.zip(model_states).
-                          map {|a_to_n, state| a_to_n[policy[state]]}
+    @compacted_value    = model_states.map {|state| value[state]}
+    if policy.empty?
+      # default to the first action, arbitrarily
+      @compacted_policy = [0]*model_states.size
+    else
+      @compacted_policy = @action_to_num.zip(model_states).
+                            map {|a_to_n, state| a_to_n[policy[state]]}
+    end
+
+    raise 'some initial values are missing' if
+      @compacted_value.any? {|v| v.nil?}
+    raise 'some initial policy actions are missing' if
+      @compacted_policy.any? {|a| a.nil?}
   end
 
   #
@@ -58,7 +79,7 @@ class FiniteMDP::Solver
   # made to the returned object will not affect the solver
   #
   def value
-    Hash[*model.states.zip(@compacted_value).flatten(1)]
+    Hash[model.states.zip(@compacted_value)]
   end
 
   #
@@ -68,8 +89,8 @@ class FiniteMDP::Solver
   # made to the returned object will not affect the solver
   #
   def policy
-    Hash[*model.states.zip(@compacted_policy).map{|state, action_n|
-      [state, model.actions(state)[action_n]]}.flatten(1)]
+    Hash[model.states.zip(@compacted_policy).map{|state, action_n|
+      [state, model.actions(state)[action_n]]}]
   end
 
   #

@@ -104,7 +104,16 @@ module FiniteMDP::Model
   end
 
   #
-  # Possible successor states after taking the given action in the given state.
+  # Successor states after taking the given action in the given state. Note that
+  # the returned states may occur with zero probability.
+  #
+  # The default behavior is to return all states as candidate successor states
+  # and let {#transition_probability} determine which ones are possible. It can
+  # be overridden in sparse models to avoid storing or computing lots of zeros.
+  # Also note that {TableModel.from_model} and {HashModel.from_model} can be
+  # told to ignore transitions with zero probability, and that the {Solver}
+  # ignores them in its internal representation, so you can usually forget about
+  # this method.
   #
   # @param [state] state
   #
@@ -112,14 +121,18 @@ module FiniteMDP::Model
   #
   # @return [Array<state>] not empty; no duplicate states
   #
-  # @abstract
-  #
   def next_states state, action
-    raise NotImplementedError
+    states
   end
 
   #
   # Probability of the given transition.
+  #
+  # If the transition is not in the model, in the sense that it would never
+  # arise from {#states}, {#actions} and {#next_states}, the result is
+  # undefined. Note that {HashModel#transition_probability} and
+  # {TableModel#transition_probability} return zero in this case, but this is
+  # not part of the contract.
   #
   # @param [state] state
   #
@@ -127,8 +140,8 @@ module FiniteMDP::Model
   #
   # @param [state] next_state
   #
-  # @return [Float] in [0, 1]; result is undefined if the transition is not
-  #  allowed
+  # @return [Float] in [0, 1]; undefined if the transition is not in the model
+  #  (see notes above)
   #
   # @abstract
   #
@@ -139,18 +152,44 @@ module FiniteMDP::Model
   #
   # Reward for a given transition.
   #
+  # If the transition is not in the model, in the sense that it would never
+  # arise from {#states}, {#actions} and {#next_states}, the result is
+  # undefined. Note that {HashModel#reward} and {TableModel#reward} return
+  # <tt>nil</tt> in this case, but this is not part of the contract.
+  #
   # @param [state] state
   #
   # @param [action] action
   #
   # @param [state] next_state
   #
-  # @return [Float] result is undefined if the transition is not allowed
+  # @return [Float, nil] nil only if the transition is not in the model (but the
+  #  result is undefined in this case -- it need not be nil; see notes above)
   #
   # @abstract
   #
   def reward state, action, next_state
     raise NotImplementedError
+  end
+
+  #
+  # Raise an error if the sum of the transition probabilities for any (state,
+  # action) pair is not sufficiently close to 1.
+  #
+  # @param [Float] tol numerical tolerance
+  #
+  # @return [nil]
+  #
+  def check_transition_probabilities_sum tol=1e-6
+    states.each do |state|
+      actions(state).each do |action|
+        pr = next_states(state, action).map{|next_state|
+          transition_probability(state, action, next_state)}.inject(:+)
+        raise "transition probabilities for state #{state.inspect} and
+          action #{action.inspect} sum to #{pr}" if pr < 1 - tol
+      end
+    end
+    nil
   end
 end
 

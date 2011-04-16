@@ -6,7 +6,7 @@
 # The states and actions can be arbitrary objects; see notes for {Model}.
 #
 class FiniteMDP::TableModel
-  include Model
+  include FiniteMDP::Model
 
   #
   # @param [Array<[state, action, state, Float, Float]>] rows each row is
@@ -65,11 +65,11 @@ class FiniteMDP::TableModel
   #
   # @param [state] next_state
   #
-  # @return [Float] in [0, 1]
-  #
+  # @return [Float] in [0, 1]; zero if the transition is not in the table
+  # 
   def transition_probability state, action, next_state
     @rows.map{|row| row[3] if row[0] == state &&
-      row[1] == action && row[2] == next_state}.compact.first
+      row[1] == action && row[2] == next_state}.compact.first || 0
   end
 
   #
@@ -81,7 +81,7 @@ class FiniteMDP::TableModel
   #
   # @param [state] next_state
   #
-  # @return [Float] result is undefined if the transition is not allowed
+  # @return [Float, nil] nil if the transition is not in the table
   #
   def reward state, action, next_state
     @rows.map{|row| row[4] if row[0] == state &&
@@ -91,22 +91,25 @@ class FiniteMDP::TableModel
   #
   # Convert any model into a table model.
   #
-  # @param [Model]
+  # @param [Model] model
+  #
+  # @param [Boolean] sparse do not store rows for transitions with zero
+  #        probability
   #
   # @return [TableModel]
   #
-  def self.from_model model
+  def self.from_model model, sparse=true
     rows = []
     model.states.each do |state|
       model.actions(state).each do |action|
         model.next_states(state, action).each do |next_state|
-          rows << [state, action, next_state, 
-            model.transition_probability(state, action, next_state),
-            model.reward(state, action, next_state)]
+          pr = model.transition_probability(state, action, next_state)
+          rows << [state, action, next_state,  pr,
+            model.reward(state, action, next_state)] if pr > 0 || !sparse
         end
       end
     end
-    TableModel.new(rows)
+    FiniteMDP::TableModel.new(rows)
   end
 end
 

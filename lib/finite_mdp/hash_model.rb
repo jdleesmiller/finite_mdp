@@ -12,11 +12,11 @@
 # The {TableModel} is an alternative way of storing these data.
 #
 class FiniteMDP::HashModel
-  include Model
+  include FiniteMDP::Model
 
   #
-  # @param [Hash<state, Hash<action, Hash<state, [Float, Float]>>>] see notes
-  # for {HashModel} for an explanation of this structure
+  # @param [Hash<state, Hash<action, Hash<state, [Float, Float]>>>] hash see
+  #        notes for {HashModel} for an explanation of this structure
   #
   def initialize hash
     @hash = hash
@@ -24,7 +24,7 @@ class FiniteMDP::HashModel
 
   #
   # @return [Hash<state, Hash<action, Hash<state, [Float, Float]>>>] see notes
-  # for {HashModel} for an explanation of this structure
+  #         for {HashModel} for an explanation of this structure
   #
   attr_accessor :hash
 
@@ -71,10 +71,11 @@ class FiniteMDP::HashModel
   #
   # @param [state] next_state
   #
-  # @return [Float] in [0, 1]
-  #
+  # @return [Float] in [0, 1]; zero if the transition is not in the hash
+  # 
   def transition_probability state, action, next_state
-    hash[state][action][next_state][0]
+    probability, reward = hash[state][action][next_state]
+    probability || 0
   end
 
   #
@@ -86,33 +87,37 @@ class FiniteMDP::HashModel
   #
   # @param [state] next_state
   #
-  # @return [Float] result is undefined if the transition is not allowed
+  # @return [Float, nil] nil if the transition is not in the hash
   #
   def reward state, action, next_state
-    hash[state][action][next_state][1]
+    probability, reward = hash[state][action][next_state]
+    reward
   end
 
   #
   # Convert a generic model into a hash model.
   #
-  # @param [Model] not nil
+  # @param [Model] model
+  #
+  # @param [Boolean] sparse do not store entries for transitions with zero
+  #        probability
   #
   # @return [HashModel] not nil
   #
-  def self.from_model model
+  def self.from_model model, sparse=true
     hash = {}
     model.states.each do |state|
       hash[state] ||= {}
       model.actions(state).each do |action|
         hash[state][action] ||= {}
         model.next_states(state, action).each do |next_state|
-          hash[state][action][next_state] = [
-            model.transition_probability(state, action, next_state),
-            model.reward(state, action, next_state)]
+          pr = model.transition_probability(state, action, next_state)
+          hash[state][action][next_state] = [pr,
+            model.reward(state, action, next_state)] if pr > 0 || !sparse
         end
       end
     end
-    HashModel.new(hash)
+    FiniteMDP::HashModel.new(hash)
   end
 end
 

@@ -1,3 +1,5 @@
+require 'enumerator'
+
 require 'finite_mdp/version'
 require 'finite_mdp/vector_valued'
 require 'finite_mdp/model'
