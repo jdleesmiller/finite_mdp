@@ -192,19 +192,39 @@ class TestFiniteMDP < Test::Unit::TestCase
     sparse_hash_model = HashModel.from_model(sparse_table_model, false)
     check_recycling_robot_model sparse_hash_model, true
 
-#    solver = Solver.new(table_model, 0.95)
-#    20.times do 
-#      solver.evaluate_policy_exact
-#      p solver.policy
-#      p solver.value
-#      solver.improve_policy
-#    end
-#    #assert solver.one_value_iteration < 1e-6 # should have converged
-#    
-#    solver = Solver.new(table_model, 0.95)
-#    1000.times do solver.one_value_iteration end
-#    p solver.policy
-#    p solver.value
+    # try solving with value iteration
+    solver = Solver.new(table_model, 0.95, Hash.new {:wait})
+    assert solver.value_iteration(1e-4, 200), "did not converge"
+    assert_equal({:high => :search, :low => :recharge}, solver.policy)
+
+    # try solving with policy iteration using iterative policy evaluation
+    solver = Solver.new(table_model, 0.95, Hash.new {:wait})
+    assert solver.policy_iteration(1e-4, 2, 20), "did not find stable policy"
+    assert_equal({:high => :search, :low => :recharge}, solver.policy)
+
+    # try solving with policy iteration using exact policy evaluation
+    solver = Solver.new(table_model, 0.95, Hash.new {:wait})
+    assert solver.policy_iteration_exact(20), "did not find stable policy"
+    assert_equal({:high => :search, :low => :recharge}, solver.policy)
+  end
+
+  def check_grid_solutions model, pretty_policy
+    # solve with policy iteration (approximate policy evaluation)
+    solver = Solver.new(model, 1)
+    assert solver.policy_iteration(1e-5, 10, 50), "did not converge"
+    assert_equal pretty_policy, model.pretty_policy(solver.policy)
+
+    # solve with policy (exact policy evaluation)
+    solver = Solver.new(model, 0.9999) # discount 1 gives singular matrix
+    assert solver.policy_iteration_exact(20), "did not converge"
+    assert_equal pretty_policy, model.pretty_policy(solver.policy)
+
+    # solve with value iteration
+    solver = Solver.new(model, 1)
+    assert solver.value_iteration(1e-5, 100), "did not converge"
+    assert_equal pretty_policy, model.pretty_policy(solver.policy)
+
+    solver
   end
 
   def test_aima_grid_1
@@ -226,20 +246,17 @@ class TestFiniteMDP < Test::Unit::TestCase
     assert_equal [:stop], model.actions([1, 3])
     assert_equal [:stop], model.actions(:stop)
 
-    # solve with value iteration
-    solver = Solver.new(model, 1)
-    40.times do solver.one_value_iteration end
-    assert solver.one_value_iteration < 1e-6 # should have converged
-
     # check policy against Figure 17.2(a)
+    solver = check_grid_solutions model,
+      ["> > >  ",
+       "^   ^  ", 
+       "^ < < <"]
+
+    # check the actual (non-pretty) policy
     assert_equal [
       [[ 0, 1], [0,  1], [ 0, 1],   :stop],
       [[-1, 0],     nil, [-1, 0],   :stop],
       [[-1, 0], [0, -1], [0, -1], [0, -1]]], model.hash_to_grid(solver.policy)
-    # or, graphically:
-    assert_equal ["> > >  ",
-                  "^   ^  ", 
-                  "^ < < <"], model.pretty_policy(solver.policy)
 
     # check values against Figure 17.3
     assert [[0.812, 0.868, 0.918,     1],
@@ -247,24 +264,10 @@ class TestFiniteMDP < Test::Unit::TestCase
             [0.705, 0.655, 0.611, 0.388]].flatten.
             zip(model.hash_to_grid(solver.value).flatten).
             all? {|x,y| (x.nil? && y.nil?) || (x-y).abs < 5e-4}
-
-    puts model.pretty_policy(solver.policy)
-    puts model.pretty_value(solver.value)
-
-    # solve with policy iteration
-    solver = Solver.new(model, 0.9999)
-    40.times do
-      solver.evaluate_policy_exact
-      solver.improve_policy
-    end
-    puts model.pretty_policy(solver.policy)
-    puts model.pretty_value(solver.value)
-    #assert solver.one_value_iteration < 1e-6 # should have converged
   end
 
-=begin
   def test_aima_grid_2
-    # the grid from Figures 17.2
+    # a grid from Figure 17.2(b)
     r = -1.7
     model = AIMAGridModel.new(
       [[   r,   r,    r,  +1],
@@ -273,18 +276,14 @@ class TestFiniteMDP < Test::Unit::TestCase
        [[0, 3], [1, 3]]) # terminals (the +1 and -1 states)
     model.check_transition_probabilities_sum
 
-    # solve with value iteration
-    solver = Solver.new(model, 1)
-    40.times do solver.one_value_iteration end
-    assert solver.one_value_iteration < 1e-6 # should have converged
-
-    assert_equal ["> > >  ",
-                  "^   >  ", 
-                  "> > > ^"], model.pretty_policy(solver.policy)
+    check_grid_solutions model, 
+      ["> > >  ",
+       "^   >  ", 
+       "> > > ^"]
   end
 
   def test_aima_grid_3
-    # the grid from Figures 17.2
+    # a grid from Figure 17.2(b)
     r = -0.3
     model = AIMAGridModel.new(
       [[   r,   r,    r,  +1],
@@ -293,18 +292,14 @@ class TestFiniteMDP < Test::Unit::TestCase
        [[0, 3], [1, 3]]) # terminals (the +1 and -1 states)
     model.check_transition_probabilities_sum
 
-    # solve with value iteration
-    solver = Solver.new(model, 1)
-    40.times do solver.one_value_iteration end
-    assert solver.one_value_iteration < 1e-6 # should have converged
-
-    assert_equal ["> > >  ",
-                  "^   ^  ", 
-                  "^ > ^ <"], model.pretty_policy(solver.policy)
+    check_grid_solutions model, 
+      ["> > >  ",
+       "^   ^  ", 
+       "^ > ^ <"]
   end
 
   def test_aima_grid_4
-    # the grid from Figures 17.2
+    # a grid from Figure 17.2(b)
     r = -0.01
     model = AIMAGridModel.new(
       [[   r,   r,    r,  +1],
@@ -313,15 +308,34 @@ class TestFiniteMDP < Test::Unit::TestCase
        [[0, 3], [1, 3]]) # terminals (the +1 and -1 states)
     model.check_transition_probabilities_sum
 
-    # solve with value iteration
-    solver = Solver.new(model, 1)
-    60.times do solver.one_value_iteration end
-    assert solver.one_value_iteration < 1e-4 # should have converged
-
-    assert_equal ["> > >  ",
-                  "^   <  ", 
-                  "^ < < v"], model.pretty_policy(solver.policy)
+    check_grid_solutions model, 
+      ["> > >  ",
+       "^   <  ", 
+       "^ < < v"]
   end
-=end
+
+  class TestPoint 
+    include FiniteMDP::VectorValued
+    def initialize x, y
+      @x, @y = x, y
+    end
+    attr_accessor :x, :y
+    # must implement to_a to make VectorValued work.
+    def to_a
+      [x, y]
+    end
+  end
+
+  def test_vector_valued
+    p1 = TestPoint.new(0, 0)
+    p2 = TestPoint.new(0, 1)
+    p3 = TestPoint.new(0, 0)
+
+    assert !p1.eql?(p2)
+    assert !p3.eql?(p2)
+    assert  p1.eql?(p1)
+    assert  p1.eql?(p3)
+    assert_equal p1.hash, p3.hash
+  end
 end
 
