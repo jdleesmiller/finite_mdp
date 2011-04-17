@@ -247,7 +247,7 @@ class FiniteMDP::Solver
       num_iters += 1
 
       break if delta < tolerance
-      break if max_iters && num_iters > max_iters
+      break if max_iters && num_iters >= max_iters
       yield num_iters, delta if block_given?
     end
     delta < tolerance
@@ -296,7 +296,7 @@ class FiniteMDP::Solver
         num_value_iters += 1
 
         break if value_delta < value_tolerance
-        break if max_value_iters && num_value_iters > max_value_iters
+        break if max_value_iters && num_value_iters >= max_value_iters
         yield num_policy_iters, num_value_iters, value_delta if block_given?
       end
 
@@ -304,7 +304,7 @@ class FiniteMDP::Solver
       stable = improve_policy
       num_policy_iters += 1
       break if stable
-      break if max_policy_iters && num_policy_iters > max_policy_iters
+      break if max_policy_iters && num_policy_iters >= max_policy_iters
     end
     stable
   end
@@ -330,7 +330,7 @@ class FiniteMDP::Solver
       stable = improve_policy
       num_iters += 1
       break if stable
-      break if max_iters && num_iters > max_iters
+      break if max_iters && num_iters >= max_iters
       yield num_iters if block_given?
     end
     stable

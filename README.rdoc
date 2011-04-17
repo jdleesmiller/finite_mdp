@@ -197,6 +197,7 @@ at http://aima.cs.berkeley.edu/python/mdp.html
 Tested on
 * ruby 1.8.7 (2010-06-23 patchlevel 299) [i686-linux]
 * ruby 1.9.2p0 (2010-08-18 revision 29036) [i686-linux]
+* ruby 1.9.2p180 (2011-02-18 revision 30909) [x86_64-linux]
 
 == INSTALLATION
 
