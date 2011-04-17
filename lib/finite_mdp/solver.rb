@@ -73,7 +73,7 @@ class FiniteMDP::Solver
 
   #
   # @return [Model] the model being solved; read only; do not change the model
-  # while it is being solved
+  #         while it is being solved
   #
   attr_reader :model
 
