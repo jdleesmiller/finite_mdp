@@ -1,0 +1,6 @@
+.*.swp
+pkg/*
+*.gem
+.bundle
+/rcov
+/rdoc
