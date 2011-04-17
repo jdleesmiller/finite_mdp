@@ -54,7 +54,7 @@ class FiniteMDP::Solver
     if policy
       action_to_num = model_states.map{|state|
         actions = model.actions(state)
-        Hash[actions.zip(0...actions.size)]
+        Hash[actions.zip((0...actions.size).to_a)]
       }
       @array_policy = action_to_num.zip(model_states).
                             map {|a_to_n, state| a_to_n[policy[state]]}

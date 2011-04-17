@@ -5,16 +5,39 @@
 #
 # A class that includes this module must define <tt>to_a</tt>.
 #
+# @example
+#
+#   class MyPoint 
+#     include FiniteMDP::VectorValued
+#
+#     def initialize x, y
+#       @x, @y = x, y
+#     end
+#
+#     attr_accessor :x, :y
+#
+#     # must implement to_a to make VectorValued work
+#     def to_a
+#       [x, y]
+#     end
+#   end
+#
+#   MyPoint.new(0, 0).eql?(MyPoint.new(0, 0)) #=> true as expected
+#
 module FiniteMDP::VectorValued
   #
-  # Redefine hashing so we can use states as hash keys.
+  # Redefine hashing based on +to_a+.
+  #
+  # @return [Integer]
   #
   def hash
     self.to_a.hash
   end
 
   #
-  # Redefine equality so we can use states as hash keys.
+  # Redefine equality based on +to_a+.
+  #
+  # @return [Boolean]
   #
   def eql? state
     self.to_a.eql? state.to_a

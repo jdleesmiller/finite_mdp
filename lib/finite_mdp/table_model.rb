@@ -89,6 +89,13 @@ class FiniteMDP::TableModel
   end
 
   #
+  # @return [String] can be quite large
+  #
+  def inspect
+    rows.map(&:inspect).join("\n")
+  end
+
+  #
   # Convert any model into a table model.
   #
   # @param [Model] model

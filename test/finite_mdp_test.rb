@@ -6,92 +6,6 @@ require 'test/unit'
 require 'finite_mdp'
 require 'set'
 
-#
-# An example model for testing; taken from Russel, Norvig (2003). Artificial
-# Intelligence: A Modern Approach, Chapter 17.
-#
-# See http://aima.cs.berkeley.edu/python/mdp.html for a Python implementation.
-#
-class AIMAGridModel
-  include FiniteMDP::Model
-
-  def initialize grid, terminii
-    @grid = grid
-    @terminii = terminii
-  end
-
-  attr_reader :grid, :terminii
-
-  # states every position on the grid is a state, except for obstacles, which
-  # are indicated by nil
-  def states
-    0.upto(grid.size-1).map{|i|
-      0.upto(grid[i].size-1).map{|j|
-        [i,j] if grid[i][j]
-      }
-    }.flatten(1).compact + [:stop]
-  end
-
-  # agent can move north, east, south or west
-  MOVE_N = [-1,  0]
-  MOVE_E = [ 0,  1]
-  MOVE_S = [ 1,  0]
-  MOVE_W = [ 0, -1]
-
-  # when the agent tries to move forward, it usually succeeds, but it may move
-  # left or right instead
-  MOVES = {
-    MOVE_N => {MOVE_N => 0.8, MOVE_E => 0.1, MOVE_W => 0.1},
-    MOVE_E => {MOVE_E => 0.8, MOVE_N => 0.1, MOVE_S => 0.1},
-    MOVE_S => {MOVE_S => 0.8, MOVE_E => 0.1, MOVE_W => 0.1},
-    MOVE_W => {MOVE_W => 0.8, MOVE_N => 0.1, MOVE_S => 0.1}
-  }
-
-  # agent can take any action in any state; if it tries to move into an obstacle
-  # or off the grid, it stays where it is
-  def actions state
-    if state == :stop || terminii.member?(state)
-      [:stop]
-    else
-      MOVES.keys
-    end
-  end
-
-  # transition probabilities are based on MOVES; we just have to make sure that
-  # we stay on the grid
-  def transition_probability state, action, next_state
-    if state == :stop || terminii.member?(state)
-      (action == :stop && next_state == :stop) ? 1 : 0
-    else
-      MOVES[action].map {|m, pr|
-        m_state = [state[0] + m[0], state[1] + m[1]]
-        m_state = state unless states.member?(m_state)
-        pr if m_state == next_state
-      }.compact.inject(:+) || 0
-    end
-  end
-
-  # reward is given by the grid cells; no reward for terminal states
-  def reward state, action, next_state
-    state == :stop ? 0 : grid[state[0]][state[1]]
-  end
-
-  def hash_to_grid hash
-    0.upto(grid.size-1).map {|i| 0.upto(grid[i].size-1).map {|j| hash[[i,j]] }}
-  end
-
-  def pretty_value value, io=STDOUT
-    hash_to_grid(Hash[value.map {|s, v| [s, "%+.3f" % v]}]).map{|row|
-      row.map{|cell| cell || '      '}.join(' ')}
-  end
-
-  def pretty_policy policy
-    symbols = {MOVE_N => '^', MOVE_E => '>', MOVE_S => 'v', MOVE_W => '<'}
-    hash_to_grid(Hash[policy.map {|s, a| [s, symbols[a]]}]).map{|row|
-      row.map{|cell| cell || ' '}.join(' ')}
-  end
-end
-
 class TestFiniteMDP < Test::Unit::TestCase
   include FiniteMDP
 
@@ -208,6 +122,96 @@ class TestFiniteMDP < Test::Unit::TestCase
     assert_equal({:high => :search, :low => :recharge}, solver.policy)
   end
 
+  #
+  # An example model for testing; taken from Russel, Norvig (2003). Artificial
+  # Intelligence: A Modern Approach, Chapter 17.
+  #
+  # See http://aima.cs.berkeley.edu/python/mdp.html for a Python implementation.
+  #
+  class AIMAGridModel
+    include FiniteMDP::Model
+
+    #
+    # @param [Array<Array<Float, nil>>] grid rewards at each point, or nil if a
+    #        grid square is an obstacle
+    #
+    # @param [Array<[i, j]>] terminii coordinates of the terminal states
+    #
+    def initialize grid, terminii
+      @grid, @terminii = grid, terminii
+    end
+
+    attr_reader :grid, :terminii
+
+    # every position on the grid is a state, except for obstacles, which are
+    # indicated by a nil in the grid
+    def states
+      is, js = (0...grid.size).to_a, (0...grid.first.size).to_a
+      is.product(js).select {|i, j| grid[i][j]} + [:stop]
+    end
+
+    # can move north, east, south or west on the grid
+    MOVES = {
+      '^' => [-1,  0], 
+      '>' => [ 0,  1], 
+      'v' => [ 1,  0], 
+      '<' => [ 0, -1]} 
+
+    # agent can move north, south, east or west (unless it's in the :stop
+    # state); if it tries to move off the grid or into an obstacle, it stays
+    # where it is
+    def actions state
+      if state == :stop || terminii.member?(state)
+        [:stop]
+      else
+        MOVES.keys
+      end
+    end
+
+    # define the transition model
+    def transition_probability state, action, next_state
+      if state == :stop || terminii.member?(state)
+        (action == :stop && next_state == :stop) ? 1 : 0
+      else
+        # agent usually succeeds in moving forward, but sometimes it ends up
+        # moving left or right
+        move = case action
+               when '^' then [['^', 0.8], ['<', 0.1], ['>', 0.1]]
+               when '>' then [['>', 0.8], ['^', 0.1], ['v', 0.1]]
+               when 'v' then [['v', 0.8], ['<', 0.1], ['>', 0.1]]
+               when '<' then [['<', 0.8], ['^', 0.1], ['v', 0.1]]
+               end
+        move.map {|m, pr|
+          m_state = [state[0] + MOVES[m][0], state[1] + MOVES[m][1]]
+          m_state = state unless states.member?(m_state) # stay in bounds
+          pr if m_state == next_state
+        }.compact.inject(:+) || 0
+      end
+    end
+
+    # reward is given by the grid cells; zero reward for the :stop state
+    def reward state, action, next_state
+      state == :stop ? 0 : grid[state[0]][state[1]]
+    end
+
+    # helper for functions below
+    def hash_to_grid hash
+      0.upto(grid.size-1).map{|i| 0.upto(grid[i].size-1).map{|j| hash[[i,j]]}}
+    end
+
+    # print the values in a grid
+    def pretty_value value
+      hash_to_grid(Hash[value.map {|s, v| [s, "%+.3f" % v]}]).map{|row|
+        row.map{|cell| cell || '      '}.join(' ')}
+    end
+
+    # print the policy using ASCII arrows
+    def pretty_policy policy
+      hash_to_grid(policy).map{|row| row.map{|cell|
+        (cell.nil? || cell == :stop) ? ' ' : cell}.join(' ')}
+    end
+  end
+
   def check_grid_solutions model, pretty_policy
     # solve with policy iteration (approximate policy evaluation)
     solver = Solver.new(model, 1)
@@ -228,7 +232,7 @@ class TestFiniteMDP < Test::Unit::TestCase
   end
 
   def test_aima_grid_1
-    # the grid from Figures 17.1, 17.2 and 17.3 (just flipped y axis)
+    # the grid from Figures 17.1, 17.2(a) and 17.3
     model = AIMAGridModel.new(
       [[-0.04, -0.04, -0.04,    +1],
        [-0.04,   nil, -0.04,    -1],
@@ -241,8 +245,7 @@ class TestFiniteMDP < Test::Unit::TestCase
       [1, 0],         [1, 2], [1, 3],
       [2, 0], [2, 1], [2, 2], [2, 3], :stop], Set[*model.states]
 
-    assert_equal Set[[0, -1], [0, 1], [-1, 0], [1, 0]],
-      Set[*model.actions([0, 0])]
+    assert_equal Set[*%w(^ > v <)], Set[*model.actions([0, 0])]
     assert_equal [:stop], model.actions([1, 3])
     assert_equal [:stop], model.actions(:stop)
 
@@ -254,9 +257,9 @@ class TestFiniteMDP < Test::Unit::TestCase
 
     # check the actual (non-pretty) policy
     assert_equal [
-      [[ 0, 1], [0,  1], [ 0, 1],   :stop],
-      [[-1, 0],     nil, [-1, 0],   :stop],
-      [[-1, 0], [0, -1], [0, -1], [0, -1]]], model.hash_to_grid(solver.policy)
+      ['>', '>', '>', :stop],
+      ['^', nil, '^', :stop],
+      ['^', '<', '<',   '<']], model.hash_to_grid(solver.policy)
 
     # check values against Figure 17.3
     assert [[0.812, 0.868, 0.918,     1],
@@ -314,22 +317,25 @@ class TestFiniteMDP < Test::Unit::TestCase
        "^ < < v"]
   end
 
-  class TestPoint 
+  class MyPoint 
     include FiniteMDP::VectorValued
+
     def initialize x, y
       @x, @y = x, y
     end
+
     attr_accessor :x, :y
-    # must implement to_a to make VectorValued work.
+
+    # must implement to_a to make VectorValued work
     def to_a
       [x, y]
     end
   end
 
   def test_vector_valued
-    p1 = TestPoint.new(0, 0)
-    p2 = TestPoint.new(0, 1)
-    p3 = TestPoint.new(0, 0)
+    p1 = MyPoint.new(0, 0)
+    p2 = MyPoint.new(0, 1)
+    p3 = MyPoint.new(0, 0)
 
     assert !p1.eql?(p2)
     assert !p3.eql?(p2)
