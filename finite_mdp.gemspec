@@ -11,8 +11,11 @@ Gem::Specification.new do |s|
   s.authors           = ['John Lees-Miller']
   s.email             = ['jdleesmiller@gmail.com']
   s.homepage          = 'http://github.com/jdleesmiller/finite_mdp'
-  s.summary           = %q{Solve small finite Markov Decision Process models.}
-  s.description       = %q{Solve small finite Markov Decision Process models.}
+  s.summary           = %q{Solve small, finite Markov Decision Process models.}
+  s.description       = %q{This library provides several ways of describing a
+finite Markov Decision Process (MDP) model (see FiniteMDP::Model) and some
+reasonably efficient implementations of policy iteration and value iteration to
+solve it (see FiniteMDP::Solver).}
 
   s.rubyforge_project = 'finite_mdp'
 
