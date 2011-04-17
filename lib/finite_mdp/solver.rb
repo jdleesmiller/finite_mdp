@@ -232,6 +232,13 @@ class FiniteMDP::Solver
   #
   # @return [Boolean] true iff iteration converged to within tolerance
   #
+  # @yield [num_iters, delta] at the end of each iteration
+  #
+  # @yieldparam [Integer] num_iters iterations done so far
+  #
+  # @yieldparam [Float] delta largest change in the value function in the last
+  #             iteration
+  #
   def value_iteration tolerance, max_iters=nil
     delta = Float::MAX
     num_iters = 0
@@ -241,6 +248,7 @@ class FiniteMDP::Solver
 
       break if delta < tolerance
       break if max_iters && num_iters > max_iters
+      yield num_iters, delta if block_given?
     end
     delta < tolerance
   end
@@ -263,6 +271,18 @@ class FiniteMDP::Solver
   #
   # @return [Boolean] true iff a stable policy was obtained
   #
+  # @yield [num_policy_iters, num_value_iters, delta] at the end of each
+  #        policy evaluation iteration
+  #
+  # @yieldparam [Integer] num_policy_iters policy improvement iterations done so
+  #             far
+  #
+  # @yieldparam [Integer] num_value_iters policy evaluation iterations done so
+  #             far for the current policy improvement iteration
+  #
+  # @yieldparam [Float] delta largest change in the value function in the last
+  #             policy evaluation iteration
+  #
   def policy_iteration value_tolerance, max_value_iters=nil,
     max_policy_iters=nil
 
@@ -277,6 +297,7 @@ class FiniteMDP::Solver
 
         break if value_delta < value_tolerance
         break if max_value_iters && num_value_iters > max_value_iters
+        yield num_policy_iters, num_value_iters, value_delta if block_given?
       end
 
       # policy improvement
@@ -297,6 +318,10 @@ class FiniteMDP::Solver
   #
   # @return [Boolean] true iff a stable policy was obtained
   #
+  # @yield [num_iters] at the end of each iteration
+  #
+  # @yieldparam [Integer] num_iters policy improvement iterations done so far
+  #
   def policy_iteration_exact max_iters=nil
     stable = false
     num_iters = 0
@@ -306,6 +331,7 @@ class FiniteMDP::Solver
       num_iters += 1
       break if stable
       break if max_iters && num_iters > max_iters
+      yield num_iters if block_given?
     end
     stable
   end
