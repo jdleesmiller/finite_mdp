@@ -113,7 +113,7 @@ class TestFiniteMDP < Test::Unit::TestCase
 
     # try solving with policy iteration using iterative policy evaluation
     solver = Solver.new(table_model, 0.95, Hash.new {:wait})
-    assert solver.policy_iteration(1e-4, 2, 20), "did not find stable policy"
+    assert solver.policy_iteration(1e-4, 2, 50), "did not find stable policy"
     assert_equal({:high => :search, :low => :recharge}, solver.policy)
 
     # try solving with policy iteration using exact policy evaluation
