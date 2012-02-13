@@ -91,6 +91,27 @@ class FiniteMDP::Solver
   end
 
   #
+  # Current state-action value estimates; whereas {#value} returns $V(s)$, this
+  # returns $Q(s,a)$, in the usual notation.
+  #
+  # @return [Hash<[state, action], Float>]
+  #
+  def state_action_value
+    q = {}
+    states = model.states
+    @array_model.each_with_index do |actions, state_n|
+      state = states[state_n]
+      state_actions = model.actions(state)
+      actions.each_with_index do |next_state_ns, action_n|
+        q_sa = next_state_ns.map {|next_state_n, pr, r|
+          pr * (r + @discount * @array_value[next_state_n])}.inject(:+)
+        q[[state, state_actions[action_n]]] = q_sa
+      end
+    end
+    q
+  end
+
+  #
   # Current estimate of the optimal action for each state.
   #
   # @return [Hash<state, action>] from states to actions; read only; any changes
