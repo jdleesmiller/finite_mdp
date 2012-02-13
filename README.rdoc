@@ -2,6 +2,8 @@
 
 * https://github.com/jdleesmiller/finite_mdp
 
+{<img src="https://secure.travis-ci.org/jdleesmiller/finite_mdp.png"/>}[http://travis-ci.org/jdleesmiller/finite_mdp]
+
 == SYNOPSIS
 
 Solve small, finite Markov Decision Process (MDP) models.
