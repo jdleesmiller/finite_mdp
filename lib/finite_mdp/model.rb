@@ -173,6 +173,24 @@ module FiniteMDP::Model
   end
 
   #
+  # Sum of the transition probabilities for each (state, action) pair; the sums
+  # should be one in a valid model.
+  #
+  # @return [Hash<[State, Action], Float>]
+  #
+  def transition_probability_sums
+    prs = []
+    states.each do |state|
+      actions(state).each do |action|
+        pr = next_states(state, action).map{|next_state|
+          transition_probability(state, action, next_state)}.inject(:+)
+        prs << [[state, action], pr]
+      end
+    end
+    Hash[prs]
+  end
+
+  #
   # Raise an error if the sum of the transition probabilities for any (state,
   # action) pair is not sufficiently close to 1.
   #
@@ -181,15 +199,40 @@ module FiniteMDP::Model
   # @return [nil]
   #
   def check_transition_probabilities_sum tol=1e-6
-    states.each do |state|
-      actions(state).each do |action|
-        pr = next_states(state, action).map{|next_state|
-          transition_probability(state, action, next_state)}.inject(:+)
-        raise "transition probabilities for state #{state.inspect} and
+    transition_probability_sums.each do |(state, action), pr|
+      raise "transition probabilities for state #{state.inspect} and
           action #{action.inspect} sum to #{pr}" if pr < 1 - tol
-      end
     end
     nil
+  end
+
+  #
+  # Set of states that have no transitions out.
+  #
+  # At present, this library can't solve a model with terminal states. However,
+  # you can add a dummy state (e.g. <tt>:stop</tt>) with zero reward that
+  # transitions back to itself with probability one.
+  #
+  # Note that if a state has transitions out, but all of them have probability
+  # zero, this method does not detect it as a terminal state. You can check for
+  # these using {#transition_probability_sums} instead.
+  #
+  # @return [Set]
+  #
+  def terminal_states
+    all_states = Set[]
+    out_states = Set[]
+    states.each do |state|
+      all_states << state
+      any_out_transitions = false
+      actions(state).each do |action|
+        ns = next_states(state, action)
+        all_states.merge ns
+        any_out_transitions ||= !ns.empty?
+      end
+      out_states << state if any_out_transitions 
+    end
+    all_states - out_states
   end
 end
 
