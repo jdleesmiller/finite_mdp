@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    finite_mdp (0.0.1)
+    finite_mdp (0.1.1)
       narray (~> 0.5.9)
 
 GEM
