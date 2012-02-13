@@ -73,7 +73,7 @@ class FiniteMDP::Solver
 
   #
   # @return [Model] the model being solved; read only; do not change the model
-  # while it is being solved
+  #         while it is being solved
   #
   attr_reader :model
 
@@ -88,6 +88,27 @@ class FiniteMDP::Solver
   #
   def value
     Hash[model.states.zip(@array_value)]
+  end
+
+  #
+  # Current state-action value estimates; whereas {#value} returns $V(s)$, this
+  # returns $Q(s,a)$, in the usual notation.
+  #
+  # @return [Hash<[state, action], Float>]
+  #
+  def state_action_value
+    q = {}
+    states = model.states
+    @array_model.each_with_index do |actions, state_n|
+      state = states[state_n]
+      state_actions = model.actions(state)
+      actions.each_with_index do |next_state_ns, action_n|
+        q_sa = next_state_ns.map {|next_state_n, pr, r|
+          pr * (r + @discount * @array_value[next_state_n])}.inject(:+)
+        q[[state, state_actions[action_n]]] = q_sa
+      end
+    end
+    q
   end
 
   #
@@ -232,6 +253,13 @@ class FiniteMDP::Solver
   #
   # @return [Boolean] true iff iteration converged to within tolerance
   #
+  # @yield [num_iters, delta] at the end of each iteration
+  #
+  # @yieldparam [Integer] num_iters iterations done so far
+  #
+  # @yieldparam [Float] delta largest change in the value function in the last
+  #             iteration
+  #
   def value_iteration tolerance, max_iters=nil
     delta = Float::MAX
     num_iters = 0
@@ -240,7 +268,8 @@ class FiniteMDP::Solver
       num_iters += 1
 
       break if delta < tolerance
-      break if max_iters && num_iters > max_iters
+      break if max_iters && num_iters >= max_iters
+      yield num_iters, delta if block_given?
     end
     delta < tolerance
   end
@@ -263,6 +292,18 @@ class FiniteMDP::Solver
   #
   # @return [Boolean] true iff a stable policy was obtained
   #
+  # @yield [num_policy_iters, num_value_iters, delta] at the end of each
+  #        policy evaluation iteration
+  #
+  # @yieldparam [Integer] num_policy_iters policy improvement iterations done so
+  #             far
+  #
+  # @yieldparam [Integer] num_value_iters policy evaluation iterations done so
+  #             far for the current policy improvement iteration
+  #
+  # @yieldparam [Float] delta largest change in the value function in the last
+  #             policy evaluation iteration
+  #
   def policy_iteration value_tolerance, max_value_iters=nil,
     max_policy_iters=nil
 
@@ -276,14 +317,15 @@ class FiniteMDP::Solver
         num_value_iters += 1
 
         break if value_delta < value_tolerance
-        break if max_value_iters && num_value_iters > max_value_iters
+        break if max_value_iters && num_value_iters >= max_value_iters
+        yield num_policy_iters, num_value_iters, value_delta if block_given?
       end
 
       # policy improvement
       stable = improve_policy
       num_policy_iters += 1
       break if stable
-      break if max_policy_iters && num_policy_iters > max_policy_iters
+      break if max_policy_iters && num_policy_iters >= max_policy_iters
     end
     stable
   end
@@ -297,6 +339,10 @@ class FiniteMDP::Solver
   #
   # @return [Boolean] true iff a stable policy was obtained
   #
+  # @yield [num_iters] at the end of each iteration
+  #
+  # @yieldparam [Integer] num_iters policy improvement iterations done so far
+  #
   def policy_iteration_exact max_iters=nil
     stable = false
     num_iters = 0
@@ -305,7 +351,8 @@ class FiniteMDP::Solver
       stable = improve_policy
       num_iters += 1
       break if stable
-      break if max_iters && num_iters > max_iters
+      break if max_iters && num_iters >= max_iters
+      yield num_iters if block_given?
     end
     stable
   end

@@ -1,0 +1,31 @@
+PATH
+  remote: .
+  specs:
+    finite_mdp (0.1.1)
+      narray (~> 0.5.9)
+
+GEM
+  remote: http://rubygems.org/
+  specs:
+    gemma (2.1.0)
+      bundler (~> 1.0.21)
+      highline (~> 1.6.9)
+      minitest (~> 2.5.1)
+      rake (~> 0.9.2)
+      rdoc (~> 3.12.0)
+      yard (~> 0.7.4)
+    highline (1.6.11)
+    json (1.6.5)
+    minitest (2.5.1)
+    narray (0.5.9.9)
+    rake (0.9.2.2)
+    rdoc (3.12)
+      json (~> 1.4)
+    yard (0.7.5)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  finite_mdp!
+  gemma (~> 2.1.0)

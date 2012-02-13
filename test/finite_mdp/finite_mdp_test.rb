@@ -9,10 +9,16 @@ require 'set'
 class TestFiniteMDP < Test::Unit::TestCase
   include FiniteMDP
 
+  def assert_close expected, actual, tol=1e-6
+    assert (expected - actual).abs < tol,
+      "expected #{actual} to be within #{tol} of #{expected}"
+  end
+
   # check that we get the same model back; model parameters must be set before
   # calling; see test_recycling_robot
   def check_recycling_robot_model model, sparse
     model.check_transition_probabilities_sum
+    assert_equal Set[], model.terminal_states
 
     assert_equal Set[:high, :low],    Set[*model.states]
     assert_equal Set[:search, :wait], Set[*model.actions(:high)]
@@ -113,13 +119,31 @@ class TestFiniteMDP < Test::Unit::TestCase
 
     # try solving with policy iteration using iterative policy evaluation
     solver = Solver.new(table_model, 0.95, Hash.new {:wait})
-    assert solver.policy_iteration(1e-4, 2, 20), "did not find stable policy"
+    assert solver.policy_iteration(1e-4, 2, 50), "did not find stable policy"
     assert_equal({:high => :search, :low => :recharge}, solver.policy)
 
     # try solving with policy iteration using exact policy evaluation
-    solver = Solver.new(table_model, 0.95, Hash.new {:wait})
+    gamma = 0.95
+    solver = Solver.new(table_model, gamma, Hash.new {:wait})
     assert solver.policy_iteration_exact(20), "did not find stable policy"
     assert_equal({:high => :search, :low => :recharge}, solver.policy)
+
+    # check the corresponding state-action values (Q(s,a) values)
+    v = solver.value
+    q_high_search  =    @alpha  * (@r_search + gamma * v[:high]) +
+                     (1-@alpha) * (@r_search + gamma * v[:low])
+    q_high_wait    = @r_wait + gamma * v[:high]
+    q_low_search   = (1-@beta) * (@r_rescue + gamma * v[:high]) +
+                        @beta  * (@r_search + gamma * v[:low])
+    q_low_wait     = @r_wait + gamma * v[:low]
+    q_low_recharge = 0 + gamma * v[:high]
+
+    q = solver.state_action_value
+    assert_close q[[:high, :search]],  q_high_search
+    assert_close q[[:high, :wait]],    q_high_wait
+    assert_close q[[:low, :search]],   q_low_search
+    assert_close q[[:low, :wait]],     q_low_wait
+    assert_close q[[:low, :recharge]], q_low_recharge
   end
 
   #
@@ -239,6 +263,7 @@ class TestFiniteMDP < Test::Unit::TestCase
        [-0.04, -0.04, -0.04, -0.04]],
        [[0, 3], [1, 3]]) # terminals (the +1 and -1 states)
     model.check_transition_probabilities_sum
+    assert_equal Set[], model.terminal_states
 
     assert_equal Set[
       [0, 0], [0, 1], [0, 2], [0, 3],
@@ -278,6 +303,7 @@ class TestFiniteMDP < Test::Unit::TestCase
        [   r,   r,    r,   r]],
        [[0, 3], [1, 3]]) # terminals (the +1 and -1 states)
     model.check_transition_probabilities_sum
+    assert_equal Set[], model.terminal_states # no actual terminals
 
     check_grid_solutions model, 
       ["> > >  ",
@@ -294,6 +320,7 @@ class TestFiniteMDP < Test::Unit::TestCase
        [   r,   r,    r,   r]],
        [[0, 3], [1, 3]]) # terminals (the +1 and -1 states)
     model.check_transition_probabilities_sum
+    assert_equal Set[], model.terminal_states # no actual terminals
 
     check_grid_solutions model, 
       ["> > >  ",
@@ -310,6 +337,7 @@ class TestFiniteMDP < Test::Unit::TestCase
        [   r,   r,    r,   r]],
        [[0, 3], [1, 3]]) # terminals (the +1 and -1 states)
     model.check_transition_probabilities_sum
+    assert_equal Set[], model.terminal_states # no actual terminals
 
     check_grid_solutions model, 
       ["> > >  ",
@@ -342,6 +370,13 @@ class TestFiniteMDP < Test::Unit::TestCase
     assert  p1.eql?(p1)
     assert  p1.eql?(p3)
     assert_equal p1.hash, p3.hash
+  end
+
+  def test_incomplete_model
+    # model with a transition from a to b but no transitions from b
+    table_model = TableModel.new [
+      [:a, :a_a, :b, 1, 0]]
+    assert_equal Set[:b], table_model.terminal_states
   end
 end
 

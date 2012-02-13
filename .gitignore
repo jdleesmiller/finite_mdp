@@ -4,3 +4,7 @@ pkg/*
 .bundle
 /rcov
 /rdoc
+/yard
+/coverage
+/.rvmrc
+/.yardoc
