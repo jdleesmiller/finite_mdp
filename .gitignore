@@ -1,7 +1,10 @@
 .*.swp
 pkg/*
 *.gem
+Gemfile.lock
 .bundle
+.ruby-version
+.ruby-gemset
 /rcov
 /rdoc
 /yard

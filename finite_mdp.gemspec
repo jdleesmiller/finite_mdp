@@ -1,9 +1,9 @@
 # -*- encoding: utf-8 -*-
 lib = File.expand_path('../lib/', __FILE__)
 $:.unshift lib unless $:.include?(lib)
- 
+
 require 'finite_mdp/version'
- 
+
 Gem::Specification.new do |s|
   s.name              = 'finite_mdp'
   s.version           = FiniteMDP::VERSION
@@ -19,8 +19,8 @@ solve it (see FiniteMDP::Solver).}
 
   s.rubyforge_project = 'finite_mdp'
 
-  s.add_runtime_dependency 'narray', '~> 0.5.9'
-  s.add_development_dependency 'gemma', '~> 2.1.0'
+  s.add_runtime_dependency 'narray', '~> 0.6'
+  s.add_development_dependency 'gemma', '> 2'
 
   s.files       = Dir.glob('{lib,bin}/**/*.rb') + %w(README.rdoc)
   s.test_files  = Dir.glob('test/finite_mdp/*_test.rb')

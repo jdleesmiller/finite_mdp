@@ -51,7 +51,7 @@ class FiniteMDP::HashModel
   #
   # Possible successor states after taking the given action in the given state;
   # see {Model#next_states}.
-  # 
+  #
   # @param [state] state
   #
   # @param [action] action
@@ -60,7 +60,7 @@ class FiniteMDP::HashModel
   #
   def next_states state, action
     hash[state][action].keys
-  end 
+  end
 
   #
   # Probability of the given transition; see {Model#transition_probability}.
@@ -72,9 +72,9 @@ class FiniteMDP::HashModel
   # @param [state] next_state
   #
   # @return [Float] in [0, 1]; zero if the transition is not in the hash
-  # 
+  #
   def transition_probability state, action, next_state
-    probability, reward = hash[state][action][next_state]
+    probability, _reward = hash[state][action][next_state]
     probability || 0
   end
 
@@ -90,7 +90,7 @@ class FiniteMDP::HashModel
   # @return [Float, nil] nil if the transition is not in the hash
   #
   def reward state, action, next_state
-    probability, reward = hash[state][action][next_state]
+    _probability, reward = hash[state][action][next_state]
     reward
   end
 

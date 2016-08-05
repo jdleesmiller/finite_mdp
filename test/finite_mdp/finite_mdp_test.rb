@@ -1,12 +1,8 @@
-# uncomment for coverage in ruby 1.9
-#require 'simplecov'
-#SimpleCov.start
-
-require 'test/unit'
+require 'minitest/autorun'
 require 'finite_mdp'
 require 'set'
 
-class TestFiniteMDP < Test::Unit::TestCase
+class TestFiniteMDP < MiniTest::Test
   include FiniteMDP
 
   def assert_close expected, actual, tol=1e-6
@@ -176,10 +172,10 @@ class TestFiniteMDP < Test::Unit::TestCase
 
     # can move north, east, south or west on the grid
     MOVES = {
-      '^' => [-1,  0], 
-      '>' => [ 0,  1], 
-      'v' => [ 1,  0], 
-      '<' => [ 0, -1]} 
+      '^' => [-1,  0],
+      '>' => [ 0,  1],
+      'v' => [ 1,  0],
+      '<' => [ 0, -1]}
 
     # agent can move north, south, east or west (unless it's in the :stop
     # state); if it tries to move off the grid or into an obstacle, it stays
@@ -277,7 +273,7 @@ class TestFiniteMDP < Test::Unit::TestCase
     # check policy against Figure 17.2(a)
     solver = check_grid_solutions model,
       ["> > >  ",
-       "^   ^  ", 
+       "^   ^  ",
        "^ < < <"]
 
     # check the actual (non-pretty) policy
@@ -305,9 +301,9 @@ class TestFiniteMDP < Test::Unit::TestCase
     model.check_transition_probabilities_sum
     assert_equal Set[], model.terminal_states # no actual terminals
 
-    check_grid_solutions model, 
+    check_grid_solutions model,
       ["> > >  ",
-       "^   >  ", 
+       "^   >  ",
        "> > > ^"]
   end
 
@@ -322,9 +318,9 @@ class TestFiniteMDP < Test::Unit::TestCase
     model.check_transition_probabilities_sum
     assert_equal Set[], model.terminal_states # no actual terminals
 
-    check_grid_solutions model, 
+    check_grid_solutions model,
       ["> > >  ",
-       "^   ^  ", 
+       "^   ^  ",
        "^ > ^ <"]
   end
 
@@ -339,13 +335,13 @@ class TestFiniteMDP < Test::Unit::TestCase
     model.check_transition_probabilities_sum
     assert_equal Set[], model.terminal_states # no actual terminals
 
-    check_grid_solutions model, 
+    check_grid_solutions model,
       ["> > >  ",
-       "^   <  ", 
+       "^   <  ",
        "^ < < v"]
   end
 
-  class MyPoint 
+  class MyPoint
     include FiniteMDP::VectorValued
 
     def initialize x, y
