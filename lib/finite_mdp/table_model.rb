@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 #
 # A finite markov decision process model for which the states, actions,
 # transition probabilities and rewards are specified as a table. This is a
@@ -12,7 +13,7 @@ class FiniteMDP::TableModel
   # @param [Array<[state, action, state, Float, Float]>] rows each row is
   #  [state, action, next state, probability, reward]
   #
-  def initialize rows
+  def initialize(rows)
     @rows = rows
   end
 
@@ -28,7 +29,7 @@ class FiniteMDP::TableModel
   # @return [Array<state>] not empty; no duplicate states
   #
   def states
-    @rows.map{|row| row[0]}.uniq
+    @rows.map { |row| row[0] }.uniq
   end
 
   #
@@ -38,23 +39,23 @@ class FiniteMDP::TableModel
   #
   # @return [Array<action>] not empty; no duplicate actions
   #
-  def actions state
-    @rows.map{|row| row[1] if row[0] == state}.compact.uniq
+  def actions(state)
+    @rows.map { |row| row[1] if row[0] == state }.compact.uniq
   end
 
   #
   # Possible successor states after taking the given action in the given state;
   # see {Model#next_states}.
-  # 
+  #
   # @param [state] state
   #
   # @param [action] action
   #
   # @return [Array<state>] not empty; no duplicate states
   #
-  def next_states state, action
-    @rows.map{|row| row[2] if row[0] == state && row[1] == action}.compact
-  end 
+  def next_states(state, action)
+    @rows.map { |row| row[2] if row[0] == state && row[1] == action }.compact
+  end
 
   #
   # Probability of the given transition; see {Model#transition_probability}.
@@ -66,10 +67,10 @@ class FiniteMDP::TableModel
   # @param [state] next_state
   #
   # @return [Float] in [0, 1]; zero if the transition is not in the table
-  # 
-  def transition_probability state, action, next_state
-    @rows.map{|row| row[3] if row[0] == state &&
-      row[1] == action && row[2] == next_state}.compact.first || 0
+  #
+  def transition_probability(state, action, next_state)
+    row = find_row(state, action, next_state)
+    row ? row[3] : 0
   end
 
   #
@@ -83,9 +84,9 @@ class FiniteMDP::TableModel
   #
   # @return [Float, nil] nil if the transition is not in the table
   #
-  def reward state, action, next_state
-    @rows.map{|row| row[4] if row[0] == state &&
-      row[1] == action && row[2] == next_state}.compact.first
+  def reward(state, action, next_state)
+    row = find_row(state, action, next_state)
+    row[4] if row
   end
 
   #
@@ -105,18 +106,26 @@ class FiniteMDP::TableModel
   #
   # @return [TableModel]
   #
-  def self.from_model model, sparse=true
+  def self.from_model(model, sparse = true)
     rows = []
     model.states.each do |state|
       model.actions(state).each do |action|
         model.next_states(state, action).each do |next_state|
           pr = model.transition_probability(state, action, next_state)
-          rows << [state, action, next_state,  pr,
-            model.reward(state, action, next_state)] if pr > 0 || !sparse
+          next unless pr > 0 || !sparse
+          reward = model.reward(state, action, next_state)
+          rows << [state, action, next_state, pr, reward]
         end
       end
     end
     FiniteMDP::TableModel.new(rows)
   end
-end
 
+  private
+
+  def find_row(state, action, next_state)
+    @rows.find do |row|
+      row[0] == state && row[1] == action && row[2] == next_state
+    end
+  end
+end

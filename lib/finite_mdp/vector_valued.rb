@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 #
 # Define an object's hash code and equality (in the sense of <tt>eql?</tt>)
 # according to its array representation (<tt>to_a</tt>). See notes for {Model}
@@ -7,7 +8,7 @@
 #
 # @example
 #
-#   class MyPoint 
+#   class MyPoint
 #     include FiniteMDP::VectorValued
 #
 #     def initialize x, y
@@ -31,7 +32,7 @@ module FiniteMDP::VectorValued
   # @return [Integer]
   #
   def hash
-    self.to_a.hash
+    to_a.hash
   end
 
   #
@@ -39,8 +40,7 @@ module FiniteMDP::VectorValued
   #
   # @return [Boolean]
   #
-  def eql? state
-    self.to_a.eql? state.to_a
+  def eql?(other)
+    to_a.eql? other.to_a
   end
 end
-

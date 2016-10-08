@@ -1,3 +1,9 @@
+# frozen_string_literal: true
+
+# We use A to denote a matrix, which rubocop does not like.
+# rubocop:disable Style/MethodName
+# rubocop:disable Style/VariableName
+
 require 'narray'
 
 #
@@ -29,7 +35,7 @@ class FiniteMDP::Solver
   # @param [Hash<state, Float>] value initial value for each state; defaults to
   #        zero for every state
   #
-  def initialize model, discount, policy=nil, value=Hash.new(0)
+  def initialize(model, discount, policy = nil, value = Hash.new(0))
     @model = model
     @discount = discount
 
@@ -39,34 +45,35 @@ class FiniteMDP::Solver
     # (that is, as a hash)
     model_states = model.states
     state_to_num = Hash[model_states.zip((0...model_states.size).to_a)]
-    @array_model = model_states.map {|state|
-      model.actions(state).map {|action|
-        model.next_states(state, action).map {|next_state|
+    @array_model = model_states.map do |state|
+      model.actions(state).map do |action|
+        model.next_states(state, action).map do |next_state|
           pr = model.transition_probability(state, action, next_state)
-          [state_to_num[next_state], pr, 
-            model.reward(state, action, next_state)] if pr > 0
-        }.compact
-      }
-    }
+          next unless pr > 0
+          reward = model.reward(state, action, next_state)
+          [state_to_num[next_state], pr, reward]
+        end.compact
+      end
+    end
 
     # convert initial values and policies to compact form
-    @array_value = model_states.map {|state| value[state]}
+    @array_value = model_states.map { |state| value[state] }
     if policy
-      action_to_num = model_states.map{|state|
+      action_to_num = model_states.map do |state|
         actions = model.actions(state)
         Hash[actions.zip((0...actions.size).to_a)]
-      }
-      @array_policy = action_to_num.zip(model_states).
-                            map {|a_to_n, state| a_to_n[policy[state]]}
+      end
+      @array_policy = action_to_num.zip(model_states)
+        .map { |a_to_n, state| a_to_n[policy[state]] }
     else
       # default to the first action, arbitrarily
-      @array_policy = [0]*model_states.size
+      @array_policy = [0] * model_states.size
     end
 
     raise 'some initial values are missing' if
-      @array_value.any? {|v| v.nil?}
+      @array_value.any?(&:nil?)
     raise 'some initial policy actions are missing' if
-      @array_policy.any? {|a| a.nil?}
+      @array_policy.any?(&:nil?)
 
     @policy_A = nil
   end
@@ -77,11 +84,11 @@ class FiniteMDP::Solver
   #
   attr_reader :model
 
-  # 
+  #
   # Current value estimate for each state.
   #
   # The result is converted from the solver's internal representation, so you
-  # cannot affect the solver by changing the result. 
+  # cannot affect the solver by changing the result.
   #
   # @return [Hash<state, Float>] from states to values; read only; any changes
   # made to the returned object will not affect the solver
@@ -103,8 +110,9 @@ class FiniteMDP::Solver
       state = states[state_n]
       state_actions = model.actions(state)
       actions.each_with_index do |next_state_ns, action_n|
-        q_sa = next_state_ns.map {|next_state_n, pr, r|
-          pr * (r + @discount * @array_value[next_state_n])}.inject(:+)
+        q_sa = next_state_ns.map do |next_state_n, pr, r|
+          pr * (r + @discount * @array_value[next_state_n])
+        end.inject(:+)
         q[[state, state_actions[action_n]]] = q_sa
       end
     end
@@ -118,8 +126,9 @@ class FiniteMDP::Solver
   # made to the returned object will not affect the solver
   #
   def policy
-    Hash[model.states.zip(@array_policy).map{|state, action_n|
-      [state, model.actions(state)[action_n]]}]
+    Hash[model.states.zip(@array_policy).map do |state, action_n|
+      [state, model.actions(state)[action_n]]
+    end]
   end
 
   #
@@ -162,8 +171,8 @@ class FiniteMDP::Solver
   def evaluate_policy_exact
     if @policy_A
       # update only those rows for which the policy has changed
-      @policy_A_action.zip(@array_policy).
-        each_with_index do |(old_action_n, new_action_n), state_n|
+      @policy_A_action.zip(@array_policy)
+        .each_with_index do |(old_action_n, new_action_n), state_n|
         next if old_action_n == new_action_n
         update_policy_Ab state_n, new_action_n
       end
@@ -171,7 +180,7 @@ class FiniteMDP::Solver
       # initialise the A and the b for Ax = b
       num_states = @array_model.size
       @policy_A = NMatrix.float(num_states, num_states)
-      @policy_A_action = [-1]*num_states
+      @policy_A_action = [-1] * num_states
       @policy_b = NVector.float(num_states)
 
       @array_policy.each_with_index do |action_n, state_n|
@@ -189,7 +198,7 @@ class FiniteMDP::Solver
   #
   # This is the 'policy improvement' step in Figure 4.3 of Sutton and Barto
   # (1998).
-  # 
+  #
   # @return [Boolean] false iff the policy changed for any state
   #
   def improve_policy
@@ -247,7 +256,7 @@ class FiniteMDP::Solver
   #
   # @param [Float] tolerance small positive number
   #
-  # @param [Integer, nil] max_iters terminate after this many iterations, even 
+  # @param [Integer, nil] max_iters terminate after this many iterations, even
   #        if the value function has not converged; nil means that there is
   #        no limit on the number of iterations
   #
@@ -260,7 +269,7 @@ class FiniteMDP::Solver
   # @yieldparam [Float] delta largest change in the value function in the last
   #             iteration
   #
-  def value_iteration tolerance, max_iters=nil
+  def value_iteration(tolerance, max_iters = nil)
     delta = Float::MAX
     num_iters = 0
     loop do
@@ -304,8 +313,8 @@ class FiniteMDP::Solver
   # @yieldparam [Float] delta largest change in the value function in the last
   #             policy evaluation iteration
   #
-  def policy_iteration value_tolerance, max_value_iters=nil,
-    max_policy_iters=nil
+  def policy_iteration(value_tolerance, max_value_iters = nil,
+    max_policy_iters = nil)
 
     stable = false
     num_policy_iters = 0
@@ -343,7 +352,7 @@ class FiniteMDP::Solver
   #
   # @yieldparam [Integer] num_iters policy improvement iterations done so far
   #
-  def policy_iteration_exact max_iters=nil
+  def policy_iteration_exact(max_iters = nil)
     stable = false
     num_iters = 0
     loop do
@@ -362,17 +371,17 @@ class FiniteMDP::Solver
   #
   # Updated value estimate for a state with the given successor states.
   #
-  def backup next_state_ns
-    next_state_ns.map {|next_state_n, probability, reward|
-      probability*(reward + @discount*@array_value[next_state_n])
-    }.inject(:+)
+  def backup(next_state_ns)
+    next_state_ns.map do |next_state_n, probability, reward|
+      probability * (reward + @discount * @array_value[next_state_n])
+    end.inject(:+)
   end
 
   #
   # Update the row in A the entry in b (in Ax=b) for the given state; see
   # {#evaluate_policy_exact}.
   #
-  def update_policy_Ab state_n, action_n
+  def update_policy_Ab(state_n, action_n)
     # clear out the old values for state_n's row
     @policy_A[true, state_n] = 0.0
 
@@ -380,12 +389,11 @@ class FiniteMDP::Solver
     b_n = 0
     next_state_ns = @array_model[state_n][action_n]
     next_state_ns.each do |next_state_n, probability, reward|
-      @policy_A[next_state_n, state_n] = -@discount*probability
-      b_n += probability*reward
+      @policy_A[next_state_n, state_n] = -@discount * probability
+      b_n += probability * reward
     end
     @policy_A[state_n, state_n] += 1
     @policy_A_action[state_n] = action_n
     @policy_b[state_n] = b_n
   end
 end
-

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 #
 # Interface that defines a finite markov decision process model.
 #
@@ -99,7 +100,7 @@ module FiniteMDP::Model
   #
   # @abstract
   #
-  def actions state
+  def actions(_state)
     raise NotImplementedError
   end
 
@@ -121,7 +122,7 @@ module FiniteMDP::Model
   #
   # @return [Array<state>] not empty; no duplicate states
   #
-  def next_states state, action
+  def next_states(_state, _action)
     states
   end
 
@@ -145,7 +146,7 @@ module FiniteMDP::Model
   #
   # @abstract
   #
-  def transition_probability state, action, next_state
+  def transition_probability(_state, _action, _next_state)
     raise NotImplementedError
   end
 
@@ -168,7 +169,7 @@ module FiniteMDP::Model
   #
   # @abstract
   #
-  def reward state, action, next_state
+  def reward(_state, _action, _next_state)
     raise NotImplementedError
   end
 
@@ -182,8 +183,9 @@ module FiniteMDP::Model
     prs = []
     states.each do |state|
       actions(state).each do |action|
-        pr = next_states(state, action).map{|next_state|
-          transition_probability(state, action, next_state)}.inject(:+)
+        pr = next_states(state, action).map do |next_state|
+          transition_probability(state, action, next_state)
+        end.inject(:+)
         prs << [[state, action], pr]
       end
     end
@@ -198,7 +200,7 @@ module FiniteMDP::Model
   #
   # @return [nil]
   #
-  def check_transition_probabilities_sum tol=1e-6
+  def check_transition_probabilities_sum(tol = 1e-6)
     transition_probability_sums.each do |(state, action), pr|
       raise "transition probabilities for state #{state.inspect} and
           action #{action.inspect} sum to #{pr}" if pr < 1 - tol
@@ -230,9 +232,8 @@ module FiniteMDP::Model
         all_states.merge ns
         any_out_transitions ||= !ns.empty?
       end
-      out_states << state if any_out_transitions 
+      out_states << state if any_out_transitions
     end
     all_states - out_states
   end
 end
-
