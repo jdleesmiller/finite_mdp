@@ -281,7 +281,7 @@ class TestFiniteMDP < MiniTest::Test
       [1, 0],         [1, 2], [1, 3],
       [2, 0], [2, 1], [2, 2], [2, 3], :stop], Set[*model.states]
 
-    assert_equal Set[*%w(^ > v <)], Set[*model.actions([0, 0])]
+    assert_equal Set[%w(^ > v <)], Set[model.actions([0, 0])]
     assert_equal [:stop], model.actions([1, 3])
     assert_equal [:stop], model.actions(:stop)
 

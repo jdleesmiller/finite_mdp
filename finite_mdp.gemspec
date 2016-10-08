@@ -24,7 +24,7 @@ solve it (see FiniteMDP::Solver).'
 
   s.add_runtime_dependency 'narray', '~> 0.6'
   s.add_development_dependency 'gemma', '> 2'
-  s.add_development_dependency 'rubocop', '~> 0.42'
+  s.add_development_dependency 'rubocop', '~> 0.43.0'
 
   s.files       = Dir.glob('{lib,bin}/**/*.rb') + %w(README.rdoc)
   s.test_files  = Dir.glob('test/finite_mdp/*_test.rb')
