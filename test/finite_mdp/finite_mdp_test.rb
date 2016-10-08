@@ -1,4 +1,9 @@
 # frozen_string_literal: true
+if ENV['COVERAGE']
+  require 'simplecov'
+  SimpleCov.start
+end
+
 require 'minitest/autorun'
 require 'finite_mdp'
 require 'set'
@@ -98,6 +103,10 @@ class TestFiniteMDP < MiniTest::Test
     check_recycling_robot_model hash_model, false
     check_recycling_robot_model TableModel.from_model(hash_model, false), false
 
+    array_model = ArrayModel.from_model(table_model, false)
+    check_recycling_robot_model array_model, false
+    check_recycling_robot_model TableModel.from_model(array_model, false), false
+
     # if we sparsify, we should lose some rows
     sparse_table_model = TableModel.from_model(table_model)
     assert_equal 7, sparse_table_model.rows.size
@@ -105,6 +114,11 @@ class TestFiniteMDP < MiniTest::Test
 
     sparse_hash_model = HashModel.from_model(table_model)
     check_recycling_robot_model sparse_hash_model, true
+    check_recycling_robot_model TableModel.from_model(sparse_hash_model), true
+
+    sparse_array_model = ArrayModel.from_model(table_model)
+    check_recycling_robot_model sparse_array_model, true
+    check_recycling_robot_model TableModel.from_model(sparse_array_model), true
 
     # once they're gone, they don't come back
     sparse_hash_model = HashModel.from_model(sparse_table_model, false)

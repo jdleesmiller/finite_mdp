@@ -31,27 +31,27 @@ Style/Documentation:
     - 'test/**/*'
 
 Metrics/AbcSize:
-  Max: 37
+  Max: 20
   Exclude:
     - 'test/**/*'
 
 Metrics/CyclomaticComplexity:
-  Max: 15
+  Max: 10
   Exclude:
     - 'test/**/*'
 
 Metrics/PerceivedComplexity:
-  Max: 15
+  Max: 10
   Exclude:
     - 'test/**/*'
 
 Metrics/MethodLength:
-  Max: 30
+  Max: 25
   Exclude:
     - 'test/**/*'
 
 Metrics/ClassLength:
-  Max: 1000
+  Max: 300
 
 Metrics/ModuleLength:
-  Max: 1000
+  Max: 300

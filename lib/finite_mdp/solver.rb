@@ -36,39 +36,28 @@ class FiniteMDP::Solver
   #        zero for every state
   #
   def initialize(model, discount, policy = nil, value = Hash.new(0))
-    @model = model
     @discount = discount
 
     # get the model data into a more compact form for calculation; this means
     # that we number the states and actions for faster lookups (avoid most of
-    # the hashing); the 'next states' map is still stored in sparse format
-    # (that is, as a hash)
-    model_states = model.states
-    state_to_num = Hash[model_states.zip((0...model_states.size).to_a)]
-    @array_model = model_states.map do |state|
-      model.actions(state).map do |action|
-        model.next_states(state, action).map do |next_state|
-          pr = model.transition_probability(state, action, next_state)
-          next unless pr > 0
-          reward = model.reward(state, action, next_state)
-          [state_to_num[next_state], pr, reward]
-        end.compact
+    # the hashing)
+    @model =
+      if model.is_a?(FiniteMDP::ArrayModel)
+        model
+      else
+        FiniteMDP::ArrayModel.from_model(model)
       end
-    end
 
     # convert initial values and policies to compact form
-    @array_value = model_states.map { |state| value[state] }
-    if policy
-      action_to_num = model_states.map do |state|
-        actions = model.actions(state)
-        Hash[actions.zip((0...actions.size).to_a)]
+    @array_value = @model.states.map { |state| value[state] }
+    @array_policy =
+      if policy
+        @model.states.map do |state|
+          @model.actions(state).index(policy[state])
+        end
+      else
+        [0] * @model.num_states
       end
-      @array_policy = action_to_num.zip(model_states)
-        .map { |a_to_n, state| a_to_n[policy[state]] }
-    else
-      # default to the first action, arbitrarily
-      @array_policy = [0] * model_states.size
-    end
 
     raise 'some initial values are missing' if
       @array_value.any?(&:nil?)
@@ -79,8 +68,8 @@ class FiniteMDP::Solver
   end
 
   #
-  # @return [Model] the model being solved; read only; do not change the model
-  #         while it is being solved
+  # @return [ArrayModel] the model being solved; read only; do not change the
+  #         model while it is being solved
   #
   attr_reader :model
 
@@ -105,15 +94,12 @@ class FiniteMDP::Solver
   #
   def state_action_value
     q = {}
-    states = model.states
-    @array_model.each_with_index do |actions, state_n|
-      state = states[state_n]
-      state_actions = model.actions(state)
-      actions.each_with_index do |next_state_ns, action_n|
-        q_sa = next_state_ns.map do |next_state_n, pr, r|
+    model.states.each_with_index do |state, state_n|
+      model.actions(state).each_with_index do |action, action_n|
+        q_sa = model.array[state_n][action_n].map do |next_state_n, pr, r|
           pr * (r + @discount * @array_value[next_state_n])
         end.inject(:+)
-        q[[state, state_actions[action_n]]] = q_sa
+        q[[state, action]] = q_sa
       end
     end
     q
@@ -144,7 +130,7 @@ class FiniteMDP::Solver
   #
   def evaluate_policy
     delta = 0.0
-    @array_model.each_with_index do |actions, state_n|
+    model.array.each_with_index do |actions, state_n|
       next_state_ns = actions[@array_policy[state_n]]
       new_value = backup(next_state_ns)
       delta = [delta, (@array_value[state_n] - new_value).abs].max
@@ -178,7 +164,7 @@ class FiniteMDP::Solver
       end
     else
       # initialise the A and the b for Ax = b
-      num_states = @array_model.size
+      num_states = model.num_states
       @policy_A = NMatrix.float(num_states, num_states)
       @policy_A_action = [-1] * num_states
       @policy_b = NVector.float(num_states)
@@ -203,7 +189,7 @@ class FiniteMDP::Solver
   #
   def improve_policy
     stable = true
-    @array_model.each_with_index do |actions, state_n|
+    model.array.each_with_index do |actions, state_n|
       a_max = nil
       v_max = -Float::MAX
       actions.each_with_index do |next_state_ns, action_n|
@@ -232,7 +218,7 @@ class FiniteMDP::Solver
   #
   def value_iteration_single
     delta = 0.0
-    @array_model.each_with_index do |actions, state_n|
+    model.array.each_with_index do |actions, state_n|
       a_max = nil
       v_max = -Float::MAX
       actions.each_with_index do |next_state_ns, action_n|
@@ -387,7 +373,7 @@ class FiniteMDP::Solver
 
     # set new values according to state_n's successors under the current policy
     b_n = 0
-    next_state_ns = @array_model[state_n][action_n]
+    next_state_ns = model.array[state_n][action_n]
     next_state_ns.each do |next_state_n, probability, reward|
       @policy_A[next_state_n, state_n] = -@discount * probability
       b_n += probability * reward
