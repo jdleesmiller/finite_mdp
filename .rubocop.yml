@@ -1,5 +1,3 @@
-inherit_from: .rubocop_todo.yml
-
 AllCops:
   TargetRubyVersion: 2.3
 
@@ -33,7 +31,7 @@ Style/Documentation:
     - 'test/**/*'
 
 Metrics/AbcSize:
-  Max: 30
+  Max: 37
   Exclude:
     - 'test/**/*'
 
@@ -48,7 +46,7 @@ Metrics/PerceivedComplexity:
     - 'test/**/*'
 
 Metrics/MethodLength:
-  Max: 25
+  Max: 30
   Exclude:
     - 'test/**/*'
 
