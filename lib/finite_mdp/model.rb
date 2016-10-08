@@ -94,7 +94,7 @@ module FiniteMDP::Model
   # All states must have at least one valid action; see notes for {Model}
   # regarding how to encode a terminal state.
   #
-  # @param [state] state
+  # @param [state] _state
   #
   # @return [Array<action>] not empty; no duplicate actions
   #
@@ -116,9 +116,9 @@ module FiniteMDP::Model
   # ignores them in its internal representation, so you can usually forget about
   # this method.
   #
-  # @param [state] state
+  # @param [state] _state
   #
-  # @param [action] action
+  # @param [action] _action
   #
   # @return [Array<state>] not empty; no duplicate states
   #
@@ -135,11 +135,11 @@ module FiniteMDP::Model
   # {TableModel#transition_probability} return zero in this case, but this is
   # not part of the contract.
   #
-  # @param [state] state
+  # @param [state] _state
   #
-  # @param [action] action
+  # @param [action] _action
   #
-  # @param [state] next_state
+  # @param [state] _next_state
   #
   # @return [Float] in [0, 1]; undefined if the transition is not in the model
   #  (see notes above)
@@ -158,11 +158,11 @@ module FiniteMDP::Model
   # undefined. Note that {HashModel#reward} and {TableModel#reward} return
   # <tt>nil</tt> in this case, but this is not part of the contract.
   #
-  # @param [state] state
+  # @param [state] _state
   #
-  # @param [action] action
+  # @param [action] _action
   #
-  # @param [state] next_state
+  # @param [state] _next_state
   #
   # @return [Float, nil] nil only if the transition is not in the model (but the
   #  result is undefined in this case -- it need not be nil; see notes above)
