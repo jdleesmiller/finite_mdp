@@ -18,8 +18,8 @@ class FiniteMDP::ArrayModel
   # with an {ArrayModel}, which works only with the indexes internally.
   #
   class StateActionMap
-    def initialize
-      @map = []
+    def initialize(map = [])
+      @map = map
     end
 
     attr_reader :map
