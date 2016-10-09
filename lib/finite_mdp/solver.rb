@@ -185,10 +185,10 @@ class FiniteMDP::Solver
   # This is the 'policy improvement' step in Figure 4.3 of Sutton and Barto
   # (1998).
   #
-  # @return [Boolean] false iff the policy changed for any state
+  # @return [Integer] number of states that changed
   #
   def improve_policy
-    stable = true
+    changed = 0
     model.array.each_with_index do |actions, state_n|
       a_max = nil
       v_max = -Float::MAX
@@ -200,10 +200,10 @@ class FiniteMDP::Solver
         end
       end
       raise "no feasible actions in state #{state_n}" unless a_max
-      stable = false if @array_policy[state_n] != a_max
+      changed += 1 if @array_policy[state_n] != a_max
       @array_policy[state_n] = a_max
     end
-    stable
+    changed
   end
 
   #
@@ -293,6 +293,9 @@ class FiniteMDP::Solver
   # @yieldparam [Integer] num_policy_iters policy improvement iterations done so
   #             far
   #
+  # @yieldparam [Integer?] actions_changed number of actions that changed in
+  #             the policy improvement phase, if any
+  #
   # @yieldparam [Integer] num_value_iters policy evaluation iterations done so
   #             far for the current policy improvement iteration
   #
@@ -302,7 +305,7 @@ class FiniteMDP::Solver
   def policy_iteration(value_tolerance, max_value_iters = nil,
     max_policy_iters = nil)
 
-    stable = false
+    num_actions_changed = nil
     num_policy_iters = 0
     loop do
       # policy evaluation
@@ -310,19 +313,19 @@ class FiniteMDP::Solver
       loop do
         value_delta = evaluate_policy
         num_value_iters += 1
+        yield(num_policy_iters, num_actions_changed, num_value_iters,
+          value_delta) if block_given?
 
         break if value_delta < value_tolerance
         break if max_value_iters && num_value_iters >= max_value_iters
-        yield num_policy_iters, num_value_iters, value_delta if block_given?
       end
 
       # policy improvement
-      stable = improve_policy
+      num_actions_changed = improve_policy
       num_policy_iters += 1
-      break if stable
-      break if max_policy_iters && num_policy_iters >= max_policy_iters
+      return true if num_actions_changed == 0
+      return false if max_policy_iters && num_policy_iters >= max_policy_iters
     end
-    stable
   end
 
   #
@@ -338,18 +341,19 @@ class FiniteMDP::Solver
   #
   # @yieldparam [Integer] num_iters policy improvement iterations done so far
   #
+  # @yieldparam [Integer] num_actions_changed number of actions that changed in
+  #             the last policy improvement phase
+  #
   def policy_iteration_exact(max_iters = nil)
-    stable = false
     num_iters = 0
     loop do
       evaluate_policy_exact
-      stable = improve_policy
+      num_actions_changed = improve_policy
       num_iters += 1
-      break if stable
-      break if max_iters && num_iters >= max_iters
-      yield num_iters if block_given?
+      yield num_iters, num_actions_changed if block_given?
+      return true if num_actions_changed == 0
+      return false if max_iters && num_iters >= max_iters
     end
-    stable
   end
 
   private

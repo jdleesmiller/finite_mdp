@@ -131,13 +131,27 @@ class TestFiniteMDP < MiniTest::Test
 
     # try solving with policy iteration using iterative policy evaluation
     solver = Solver.new(table_model, 0.95, Hash.new { :wait })
-    assert solver.policy_iteration(1e-4, 2, 50), 'did not find stable policy'
+    stable = solver.policy_iteration(1e-4, 2, 50) do |*args|
+      assert_equal 4, args.size
+      num_policy_iters, num_actions_changed, num_value_iters, value_delta = args
+      assert num_policy_iters >= 0
+      assert num_actions_changed.nil? || num_actions_changed >= 0
+      assert num_value_iters > 0
+      assert value_delta >= 0
+    end
+    assert_equal true, stable, 'did not find stable policy'
     assert_equal({ high: :search, low: :recharge }, solver.policy)
 
     # try solving with policy iteration using exact policy evaluation
     gamma = 0.95
     solver = Solver.new(table_model, gamma, Hash.new { :wait })
-    assert solver.policy_iteration_exact(20), 'did not find stable policy'
+    stable = solver.policy_iteration_exact(20) do |*args|
+      assert_equal 2, args.size
+      num_iters, num_actions_changed = args
+      assert num_iters > 0
+      assert num_actions_changed >= 0
+    end
+    assert_equal true, stable, 'did not find stable policy'
     assert_equal({ high: :search, low: :recharge }, solver.policy)
 
     # check the corresponding state-action values (Q(s,a) values)
