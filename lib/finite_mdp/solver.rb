@@ -190,16 +190,20 @@ class FiniteMDP::Solver
   # This is the 'policy improvement' step in Figure 4.3 of Sutton and Barto
   # (1998).
   #
+  # @param [Float] tolerance non-negative tolerance; for the policy to change,
+  #        the action must be at least this much better than the current
+  #        action
+  #
   # @return [Integer] number of states that changed
   #
-  def improve_policy
+  def improve_policy(tolerance: Float::EPSILON)
     changed = 0
     model.array.each_with_index do |actions, state_n|
       a_max = nil
       v_max = -Float::MAX
       actions.each_with_index do |next_state_ns, action_n|
         v = backup(next_state_ns)
-        if v > v_max
+        if v > v_max + tolerance
           a_max = action_n
           v_max = v
         end
@@ -281,6 +285,11 @@ class FiniteMDP::Solver
   #        phase ends if the largest change in the value function
   #        (<tt>delta</tt>) is below this tolerance
   #
+  # @param [Float] policy_tolerance small positive number; when comparing
+  #        actions during policy improvement, ignore value function differences
+  #        smaller than this tolerance; this helps with convergence when there
+  #        are several equivalent or extremely similar actions
+  #
   # @param [Integer, nil] max_value_iters terminate the policy evaluation
   #        phase after this many iterations, even if the value function has not
   #        converged; nil means that there is no limit on the number of
@@ -307,7 +316,8 @@ class FiniteMDP::Solver
   # @yieldparam [Float] delta largest change in the value function in the last
   #             policy evaluation iteration
   #
-  def policy_iteration(value_tolerance:, max_value_iters: nil,
+  def policy_iteration(value_tolerance:,
+    policy_tolerance: value_tolerance / 2.0, max_value_iters: nil,
     max_policy_iters: nil)
 
     num_actions_changed = nil
@@ -326,7 +336,7 @@ class FiniteMDP::Solver
       end
 
       # policy improvement
-      num_actions_changed = improve_policy
+      num_actions_changed = improve_policy(tolerance: policy_tolerance)
       num_policy_iters += 1
       return true if num_actions_changed == 0
       return false if max_policy_iters && num_policy_iters >= max_policy_iters
