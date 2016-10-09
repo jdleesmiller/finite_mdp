@@ -74,6 +74,11 @@ class FiniteMDP::Solver
   attr_reader :model
 
   #
+  # @return [Float] discount factor, in (0, 1]
+  #
+  attr_reader :discount
+
+  #
   # Current value estimate for each state.
   #
   # The result is converted from the solver's internal representation, so you
