@@ -35,7 +35,7 @@ class FiniteMDP::Solver
   # @param [Hash<state, Float>] value initial value for each state; defaults to
   #        zero for every state
   #
-  def initialize(model, discount, policy = nil, value = Hash.new(0))
+  def initialize(model, discount, policy: nil, value: Hash.new(0))
     @discount = discount
 
     # get the model data into a more compact form for calculation; this means
@@ -260,7 +260,7 @@ class FiniteMDP::Solver
   # @yieldparam [Float] delta largest change in the value function in the last
   #             iteration
   #
-  def value_iteration(tolerance, max_iters = nil)
+  def value_iteration(tolerance:, max_iters: nil)
     delta = Float::MAX
     num_iters = 0
     loop do
@@ -307,8 +307,8 @@ class FiniteMDP::Solver
   # @yieldparam [Float] delta largest change in the value function in the last
   #             policy evaluation iteration
   #
-  def policy_iteration(value_tolerance, max_value_iters = nil,
-    max_policy_iters = nil)
+  def policy_iteration(value_tolerance:, max_value_iters: nil,
+    max_policy_iters: nil)
 
     num_actions_changed = nil
     num_policy_iters = 0
@@ -349,7 +349,7 @@ class FiniteMDP::Solver
   # @yieldparam [Integer] num_actions_changed number of actions that changed in
   #             the last policy improvement phase
   #
-  def policy_iteration_exact(max_iters = nil)
+  def policy_iteration_exact(max_iters: nil)
     num_iters = 0
     loop do
       evaluate_policy_exact

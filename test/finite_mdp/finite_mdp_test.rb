@@ -126,14 +126,15 @@ class TestFiniteMDP < MiniTest::Test
 
     # try solving with value iteration
     solver = Solver.new(table_model, 0.95, Hash.new { :wait })
-    assert solver.value_iteration(1e-4, 200), 'did not converge'
+    stable = solver.value_iteration(tolerance: 1e-4, max_iters: 200)
+    assert stable, 'did not converge'
     assert_equal({ high: :search, low: :recharge }, solver.policy)
 
     # try solving with policy iteration using iterative policy evaluation
     solver = Solver.new(table_model, 0.95, Hash.new { :wait })
-    stable = solver.policy_iteration(1e-4, 2, 50) do |*args|
-      assert_equal 4, args.size
-      num_policy_iters, num_actions_changed, num_value_iters, value_delta = args
+    stable = solver.policy_iteration(
+      value_tolerance: 1e-4, max_value_iters: 2, max_policy_iters: 50
+    ) do |num_policy_iters, num_actions_changed, num_value_iters, value_delta|
       assert num_policy_iters >= 0
       assert num_actions_changed.nil? || num_actions_changed >= 0
       assert num_value_iters > 0
@@ -145,7 +146,7 @@ class TestFiniteMDP < MiniTest::Test
     # try solving with policy iteration using exact policy evaluation
     gamma = 0.95
     solver = Solver.new(table_model, gamma, Hash.new { :wait })
-    stable = solver.policy_iteration_exact(20) do |*args|
+    stable = solver.policy_iteration_exact(max_iters: 20) do |*args|
       assert_equal 2, args.size
       num_iters, num_actions_changed = args
       assert num_iters > 0
@@ -277,17 +278,21 @@ class TestFiniteMDP < MiniTest::Test
   def check_grid_solutions(model, pretty_policy)
     # solve with policy iteration (approximate policy evaluation)
     solver = Solver.new(model, 1)
-    assert solver.policy_iteration(1e-5, 10, 50), 'did not converge'
+    stable = solver.policy_iteration(
+      value_tolerance: 1e-5, max_value_iters: 10, max_policy_iters: 50
+    )
+    assert stable, 'did not converge'
     assert_equal pretty_policy, model.pretty_policy(solver.policy)
 
     # solve with policy (exact policy evaluation)
     solver = Solver.new(model, 0.9999) # discount 1 gives singular matrix
-    assert solver.policy_iteration_exact(20), 'did not converge'
+    assert solver.policy_iteration_exact(max_iters: 20), 'did not converge'
     assert_equal pretty_policy, model.pretty_policy(solver.policy)
 
     # solve with value iteration
     solver = Solver.new(model, 1)
-    assert solver.value_iteration(1e-5, 100), 'did not converge'
+    stable = solver.value_iteration(tolerance: 1e-5, max_iters: 100)
+    assert stable, 'did not converge'
     assert_equal pretty_policy, model.pretty_policy(solver.policy)
 
     solver
