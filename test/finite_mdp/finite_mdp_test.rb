@@ -61,9 +61,9 @@ class TestFiniteMDP < MiniTest::Test
     assert_equal @r_wait,   model.reward(:high, :wait, :high)
 
     if sparse
-      assert_equal     nil, model.reward(:low, :wait, :high)
-      assert_equal     nil, model.reward(:low, :recharge, :low)
-      assert_equal     nil, model.reward(:high, :wait, :low)
+      assert_nil model.reward(:low, :wait, :high)
+      assert_nil model.reward(:low, :recharge, :low)
+      assert_nil model.reward(:high, :wait, :low)
     else
       assert_equal @r_wait, model.reward(:low, :wait, :high)
       assert_equal 0,       model.reward(:low, :recharge, :low)
