@@ -217,7 +217,9 @@ class FiniteMDP::ArrayModel
           pr = model.transition_probability(state, action, next_state)
           next unless pr > 0 || !sparse
           reward = model.reward(state, action, next_state)
-          [state_action_map.state_index(next_state), pr, reward]
+          next_index = state_action_map.state_index(next_state)
+          raise "successor state not found: #{next_state}" unless next_index
+          [next_index, pr, reward]
         end.compact
       end
     end
