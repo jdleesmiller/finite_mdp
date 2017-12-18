@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 if ENV['COVERAGE']
   require 'simplecov'
   SimpleCov.start
@@ -168,11 +169,11 @@ class TestFiniteMDP < MiniTest::Test
     q_low_recharge = 0 + gamma * v[:high]
 
     q = solver.state_action_value
-    assert_close q[[:high, :search]],  q_high_search
-    assert_close q[[:high, :wait]],    q_high_wait
-    assert_close q[[:low, :search]],   q_low_search
-    assert_close q[[:low, :wait]],     q_low_wait
-    assert_close q[[:low, :recharge]], q_low_recharge
+    assert_close q[%i[high search]],  q_high_search
+    assert_close q[%i[high wait]],    q_high_wait
+    assert_close q[%i[low search]],   q_low_search
+    assert_close q[%i[low wait]],     q_low_wait
+    assert_close q[%i[low recharge]], q_low_recharge
   end
 
   #
@@ -314,7 +315,7 @@ class TestFiniteMDP < MiniTest::Test
       [1, 0],         [1, 2], [1, 3],
       [2, 0], [2, 1], [2, 2], [2, 3], :stop], Set[*model.states]
 
-    assert_equal Set[%w(^ > v <)], Set[model.actions([0, 0])]
+    assert_equal Set[%w[^ > v <]], Set[model.actions([0, 0])]
     assert_equal [:stop], model.actions([1, 3])
     assert_equal [:stop], model.actions(:stop)
 
@@ -332,11 +333,11 @@ class TestFiniteMDP < MiniTest::Test
     ], model.hash_to_grid(solver.policy)
 
     # check values against Figure 17.3
-    assert [[0.812, 0.868, 0.918, 1],
+    assert([[0.812, 0.868, 0.918, 1],
             [0.762, nil,   0.660, -1],
             [0.705, 0.655, 0.611, 0.388]].flatten
       .zip(model.hash_to_grid(solver.value).flatten)
-      .all? { |x, y| (x.nil? && y.nil?) || (x - y).abs < 5e-4 }
+      .all? { |x, y| (x.nil? && y.nil?) || (x - y).abs < 5e-4 })
   end
 
   def test_aima_grid_2

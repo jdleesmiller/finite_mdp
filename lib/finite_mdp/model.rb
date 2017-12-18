@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 #
 # Interface that defines a finite markov decision process model.
 #
@@ -202,8 +203,9 @@ module FiniteMDP::Model
   #
   def check_transition_probabilities_sum(tol = 1e-6)
     transition_probability_sums.each do |(state, action), pr|
-      raise "transition probabilities for state #{state.inspect} and
-          action #{action.inspect} sum to #{pr}" if pr < 1 - tol
+      next if (1 - pr).abs <= tol
+      raise "transition probabilities for state #{state.inspect} and action " \
+          "#{action.inspect} sum to #{pr}"
     end
     nil
   end

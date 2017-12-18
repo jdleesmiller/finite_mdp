@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 #
 # A finite markov decision process model for which the states, transition
 # probabilities and rewards are stored in a sparse nested array format:

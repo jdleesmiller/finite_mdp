@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 #
 # A finite markov decision process model for which the states, actions,
 # transition probabilities and rewards are specified as a table. This is a

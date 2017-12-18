@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 #
 # A finite markov decision process model for which the transition
 # probabilities and rewards are specified using nested hash tables.

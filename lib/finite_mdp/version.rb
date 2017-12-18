@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 module FiniteMDP
   VERSION_MAJOR = 0
   VERSION_MINOR = 3

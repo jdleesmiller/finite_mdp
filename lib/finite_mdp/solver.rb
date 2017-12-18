@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 # We use A to denote a matrix, which rubocop does not like.
-# rubocop:disable Style/MethodName
-# rubocop:disable Style/VariableName
+# rubocop:disable Naming/MethodName
+# rubocop:disable Naming/VariableName
 
 require 'narray'
 
@@ -328,8 +328,10 @@ class FiniteMDP::Solver
       loop do
         value_delta = evaluate_policy
         num_value_iters += 1
-        yield(num_policy_iters, num_actions_changed, num_value_iters,
-          value_delta) if block_given?
+        if block_given?
+          yield(num_policy_iters, num_actions_changed, num_value_iters,
+            value_delta)
+        end
 
         break if value_delta < value_tolerance
         break if max_value_iters && num_value_iters >= max_value_iters
@@ -402,3 +404,6 @@ class FiniteMDP::Solver
     @policy_b[state_n] = b_n
   end
 end
+
+# rubocop:enable Naming/MethodName
+# rubocop:enable Naming/VariableName

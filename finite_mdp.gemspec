@@ -1,5 +1,5 @@
-# -*- encoding: utf-8 -*-
 # frozen_string_literal: true
+
 require 'English'
 
 lib = File.expand_path('../lib/', __FILE__)
@@ -24,10 +24,10 @@ solve it (see FiniteMDP::Solver).'
 
   s.add_runtime_dependency 'narray', '~> 0.6'
   s.add_development_dependency 'gemma', '> 2'
-  s.add_development_dependency 'rubocop', '~> 0.43.0'
+  s.add_development_dependency 'rubocop', '~> 0.52.0'
   s.add_development_dependency 'simplecov', '~> 0.12.0'
 
-  s.files       = Dir.glob('{lib,bin}/**/*.rb') + %w(README.rdoc)
+  s.files       = Dir.glob('{lib,bin}/**/*.rb') + %w[README.rdoc]
   s.test_files  = Dir.glob('test/finite_mdp/*_test.rb')
   s.executables = Dir.glob('bin/*').map { |f| File.basename(f) }
 

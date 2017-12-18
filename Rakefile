@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require 'rubygems'
 require 'bundler/setup'
 require 'gemma'
@@ -9,4 +10,4 @@ RuboCop::RakeTask.new(:lint)
 
 task default: :test
 
-task ci: [:test, :lint]
+task ci: %i[test lint]

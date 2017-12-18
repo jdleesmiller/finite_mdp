@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 #
 # Define an object's hash code and equality (in the sense of <tt>eql?</tt>)
 # according to its array representation (<tt>to_a</tt>). See notes for {Model}
